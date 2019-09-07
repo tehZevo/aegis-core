@@ -47,8 +47,6 @@ Currently, the protocol is implemented using a single HTTP POST request.
   * takes in reward(s), rescales/averages them
   * probably requires environment nodes to have a separate reward link (action comes from one node, reward goes to another)
 
-* allow configurable environment in env node
-
 * "PSET" engine
   * policy search with eligibility traces
   * uses parameter search instead of gradients (compared to PGET)

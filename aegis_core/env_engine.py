@@ -22,12 +22,12 @@ class EnvEngine(RequestEngine):
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
-    self.input_size = self.env.observation_space.shape [0] #TODO: handle multidim
+    self.output_size = self.env.observation_space.shape [0] #TODO: handle multidim
 
     if self.is_discrete:
-      self.output_size = self.env.action_space.n
+      self.input_size = self.env.action_space.n
     else:
-      self.output_size = self.env.action_space.shape[0] #TODO: handle multidim
+      self.input_size = self.env.action_space.shape[0] #TODO: handle multidim
 
     self.episode_rewards = []
     self.step_rewards = []
