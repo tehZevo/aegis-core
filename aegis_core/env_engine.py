@@ -22,7 +22,7 @@ class EnvEngine(RequestEngine):
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
-    self.output_size = self.env.observation_space.shape [0] #TODO: handle multidim
+    self.output_size = self.env.observation_space.shape[0] #TODO: handle multidim
 
     if self.is_discrete:
       self.input_size = self.env.action_space.n

@@ -25,7 +25,7 @@ class ControllerResource(Resource):
     self.controller.reward += reward
     data = self.controller.state
     if data is None:
-      data = np.zeros([self.controller.engine.input_size]) #TODO: 1d
+      data = np.zeros([self.controller.engine.output_size]) #TODO: 1d
     #print("DATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", data)
     if np.isnan(data).any():
       print("OH NO, NANS IN OUTPUT! {}".format(data))
