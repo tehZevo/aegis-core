@@ -1,5 +1,4 @@
 import numpy as np
-import requests
 import threading
 import os
 import math
@@ -35,12 +34,13 @@ class ControllerResource(Resource):
     return data
 
 class FlaskController(Controller):
-  def __init__(self, engine, niceness=1, port=8181):
+  def __init__(self, engine, niceness=1, port=8181, autostart=True):
     super().__init__(engine, niceness=1)
 
     self.start_server(port)
 
-    self.loop()
+    if autostart:
+      self.loop()
 
   def start_server(self, port):
     flask_app = Flask(__name__)
