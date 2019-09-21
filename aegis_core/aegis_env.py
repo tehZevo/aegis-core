@@ -6,6 +6,7 @@ from gym import spaces
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
+from tensorflow.keras.utils import to_categorical
 
 from .flask_controller import ControllerResource
 from .engine import RequestEngine
@@ -42,7 +43,9 @@ class AegisEnv(gym.Env):
     self.start_server(port)
 
   def step(self, action):
-    #TODO: how to handle discrete actions? to_categorical?
+    #aegis expects discrete actions to be represented by one-hot (for now)
+    if self.discrete:
+      action = to_categorical(action, self.action_space.n)
     #set state for other nodes to pick up
     self.state = action
 
