@@ -13,6 +13,8 @@ class RequestEngine:
     self.input_urls = input_urls
 
   def get_single_input(self, url, reward):
+    """warning: may return none"""
+
     try:
       #TODO: prefetch
       r = requests.post(url, json=reward)
@@ -25,11 +27,5 @@ class RequestEngine:
       return None
 
   def get_inputs(self, reward):
-    if len(self.input_urls) == 0:
-      print("no urls, returning zeros")
-      return np.zeros([1, self.input_size]) #1 for url dim
-
-    inputs = [self.get_single_input(url, reward) for url in self.input_urls]
-    #fix nones TODO: remove?
-    #inputs = [np.zeros([self.input_size]) if x is None else x for x in inputs]
-    return inputs
+    """warning: may return nones"""
+    return [self.get_single_input(url, reward) for url in self.input_urls]

@@ -34,7 +34,7 @@ class AegisEnv(gym.Env):
     #despite it being named "state", this is actually the output (ie action)
     #of the agent, to be passed to whichever agents request it down the line
     #do NOT return this from reset/step
-    self.state = np.zeros([action_size])
+    self.state = np.zeros([action_size]) #TODO: set to none to start?
     #reward for the next step
     self.reward = 0
 
@@ -52,18 +52,19 @@ class AegisEnv(gym.Env):
     time.sleep(self.sleep) #TODO: move sleep? idk
     r = self.reward
     self.reward = 0
-    #accumulate states from other nodes
-    inputs = self.request_engine.get_inputs(r)
-    #TODO: other merge methods?
-    inputs = np.mean(inputs, axis=0)
+    obs = self.get_observation(r);
 
-    return inputs, r, False, {}
+    return obs, r, False, {}
+
+  def get_observation(self, reward):
+    #TODO: reward propagation scheme?
+    inputs = self.request_engine.get_inputs(reward)
+    inputs = [np.zeros([self.input_size]) if x is None else x for x in inputs]
+    #TODO: other merge methods?
+    return np.mean(inputs, axis=0)
 
   def reset(self):
-    inputs = self.request_engine.get_inputs(0)
-    #TODO: other merge methods?
-    inputs = np.mean(inputs, axis=0)
-    return inputs
+    return self.get_observation(0)
 
   #jacked from aegis -> flask_controller.py
   def start_server(self, port):
