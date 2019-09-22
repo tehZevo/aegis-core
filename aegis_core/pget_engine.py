@@ -34,8 +34,8 @@ class PGETEngine(RequestEngine):
     self.regularization = regularization_scale * self.lr
     self.reward_transform = reward_transform
     self.noise = noise
-    #TODO: hardcoded optimizer
-    self.optimizer = None if optimizer.lower() != "adam" else tf.train.AdamOptimizer(self.lr)
+    # :|
+    self.optimizer = None if optimizer is None else tf.train.AdamOptimizer(self.lr)
     self.propagate_advantage = propagate_advantage
     self.save_interval = save_interval
 
