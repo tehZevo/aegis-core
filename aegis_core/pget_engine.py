@@ -20,7 +20,7 @@ class PGETEngine(RequestEngine):
       propagate_advantage=False,
       #hyperparameters
       epsilon=1e-7, advantage_clip=1, gamma=0.99, lr=1e-4, lambda_=0.9,
-      regularization_scale=1e-4, optimizer="adam"):
+      regularization_scale=1e-4, optimizer="adam", noise=0.1):
     super().__init__(input_urls=input_urls)
 
     #TODO: populate hyperparameters from arguments
@@ -33,8 +33,9 @@ class PGETEngine(RequestEngine):
     self.alt_trace_method = alt_trace_method
     self.regularization = regularization_scale * self.lr
     self.reward_transform = reward_transform
+    self.noise = noise
     #TODO: hardcoded optimizer
-    self.optimizer = tf.train.AdamOptimizer(self.lr) #None
+    self.optimizer = None if lower(optimizer) != "adam" else tf.train.AdamOptimizer(self.lr)
     self.propagate_advantage = propagate_advantage
     self.save_interval = save_interval
 
@@ -48,7 +49,8 @@ class PGETEngine(RequestEngine):
 
     #TODO: try huber loss again?
     self.loss = categorical_crossentropy if is_discrete else tf.losses.mean_squared_error
-    self.explore = explore_discrete if is_discrete else explore_continuous
+    explore_func = explore_discrete if is_discrete else explore_continuous
+    self.explore = lambda x: explore_func(x, self.noise)
 
     self.traces = create_traces(self.model)
 
