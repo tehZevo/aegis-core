@@ -43,7 +43,7 @@ class EnvEngine(RequestEngine):
     if action is None:
       if self.is_discrete:
         #TODO: clean up.. for now, just return random action if failed to get action
-        action = to_categorical(np.random.randint(self.env.action_space.n))
+        action = to_categorical(np.random.randint(self.env.action_space.n), self.env.action_space.n)
       else:
         action = np.zeros(self.env.action_space.shape)
 
