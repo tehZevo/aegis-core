@@ -9,7 +9,7 @@ from .engine import RequestEngine
 
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
-      viz_interval=100, viz_quantile=0.05):
+      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
@@ -19,6 +19,7 @@ class EnvEngine(RequestEngine):
     #TODO: make viz_interval steps instead of episodes
     self.viz_interval = viz_interval
     self.viz_quantile = viz_quantile
+    self.viz_smoothing = viz_smoothing
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
@@ -81,7 +82,7 @@ class EnvEngine(RequestEngine):
       self.step_rewards = []
 
       if len(self.episode_rewards) % self.viz_interval == 0:
-        save_plot(self.episode_rewards, "{} Episode rewards".format(self.run_name), 0.01, q=self.viz_quantile)
-        save_plot(self.episode_actions, "{} Actions".format(self.run_name), 0.01)
+        save_plot(self.episode_rewards, "{} Episode rewards".format(self.run_name), self.viz_smoothing, q=self.viz_quantile)
+        save_plot(self.episode_actions, "{} Actions".format(self.run_name), self.viz_smoothing)
 
     return state
