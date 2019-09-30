@@ -1,3 +1,5 @@
+import numpy as np
+
 from .engine import RequestEngine
 
 class RewardProxy(RequestEngine):
