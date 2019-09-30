@@ -12,4 +12,4 @@ class RewardProxy(RequestEngine):
     #distribute reward, discard tensors.. who needs them anyway?
     self.get_inputs(reward);
 
-    return [];
+    return np.zeros([0]);

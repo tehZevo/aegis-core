@@ -17,7 +17,7 @@ class PGETEngine(RequestEngine):
   def __init__(self, modelpath, is_discrete, input_urls=[], save_interval=1000,
       #general config
       train=True, alt_trace_method=False, reward_transform=lambda x: x,
-      propagate_advantage=False,
+      reward_propagation=0, propagate_advantage=False,
       #hyperparameters
       epsilon=1e-7, advantage_clip=1, gamma=0.99, lr=1e-4, lambda_=0.9,
       regularization_scale=1e-4, optimizer="adam", noise=0.1):
@@ -34,6 +34,8 @@ class PGETEngine(RequestEngine):
     self.regularization = regularization_scale * self.lr
     self.reward_transform = reward_transform
     self.noise = noise
+    self.reward_propagation = 0.9
+
     # :|
     self.optimizer = None if optimizer is None else tf.train.AdamOptimizer(self.lr)
     self.propagate_advantage = propagate_advantage
@@ -67,8 +69,7 @@ class PGETEngine(RequestEngine):
     prop_reward = advantage if self.propagate_advantage else reward
 
     #TODO: other reward propagation schemes?
-    #TODO: split rewards between inputs instead of duplicating
-    input_states = self.get_inputs(prop_reward * 0.9 / len(self.input_urls)) #TODO: hardcoded propagation
+    input_states = self.get_inputs(prop_reward * self.reward_propagation / len(self.input_urls))
     #fix Nones
     input_states = [np.zeros([self.input_size]) if x is None else x for x in input_states]
     #TODO: try running on each input, then averaging?
