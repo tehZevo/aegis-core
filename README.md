@@ -22,6 +22,9 @@ Currently, the protocol is implemented using a single HTTP POST request.
 ### Engine:
 * Handles internal update logic such as accumulating input states, training a reinforcement learning agent, producing a new state, etc.
 
+### Reward proxy:
+* Accepts rewards which are then sent to multiple nodes at the same time
+
 ## TODO
 * support environments with discrete observation spaces
 
@@ -43,9 +46,7 @@ Currently, the protocol is implemented using a single HTTP POST request.
   * connect/disconnect
   * learning rate, gamma/lambda, etc
 
-* reward distribution node
-  * takes in reward(s), rescales/averages them
-  * probably requires environment nodes to have a separate reward link (action comes from one node, reward goes to another)
+* add "channels" and rescaling to reward proxy
 
 * "PSET" engine
   * policy search with eligibility traces

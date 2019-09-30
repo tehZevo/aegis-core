@@ -9,12 +9,13 @@ from .engine import RequestEngine
 
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
-      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1):
+      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
     self.end_reward = end_reward
     self.run_name = run_name
+    self.reward_proxy = reward_proxy
 
     #TODO: make viz_interval steps instead of episodes
     self.viz_interval = viz_interval
@@ -51,6 +52,11 @@ class EnvEngine(RequestEngine):
     return action
 
   def update(self, reward):
+    #if we have a reward proxy, send the reward there instead of the upstream node
+    if self.reward_proxy is not None:
+      self.get_single_input(self.reward_proxy, self.last_reward)
+      self.last_reward = 0; #nuke reward so upstream nodes get 0
+
     #get input (and give reward :)))) )
     action = self.get_action(self.last_reward);
 
