@@ -18,4 +18,4 @@ class Controller:
       if self.niceness >= 0:
         time.sleep(dt * self.niceness)
       else:
-        time.sleep(self.niceness)
+        time.sleep(-self.niceness)
