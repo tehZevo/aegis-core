@@ -1,5 +1,15 @@
 import requests
 import numpy as np
+import re
+
+def sanitize(url):
+  if re.match(r"^\d+(/.*)?$", url):
+    url = "localhost:" + url
+
+  if not re.match(r"^https?://", url):
+    url = "http://" + url
+
+  return url
 
 class Engine:
   def __init__(self):
@@ -10,7 +20,7 @@ class Engine:
 
 class RequestEngine:
   def __init__(self, input_urls=[]):
-    self.input_urls = input_urls
+    self.input_urls = [sanitize(url) for url in input_urls]
 
   def get_single_input(self, url, reward):
     """warning: may return none"""
