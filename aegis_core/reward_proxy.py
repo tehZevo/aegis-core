@@ -46,7 +46,7 @@ class RewardProxy(RequestEngine):
   def loop(self):
     while True:
       starttime = time.time()
-      self.update(r)
+      self.update()
       #sleep time equal to update time * niceness
       dt = time.time() - starttime
       if self.niceness >= 0:
