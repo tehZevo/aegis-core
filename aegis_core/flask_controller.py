@@ -2,6 +2,7 @@ import numpy as np
 import threading
 import os
 import math
+from collections import defaultdict
 
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
@@ -9,8 +10,9 @@ from flask_restful import Resource, Api
 from .controller import Controller
 
 class ControllerResource(Resource):
-  def __init__(self, controller):
+  def __init__(self, controller, channel):
     self.controller = controller
+    self.channel = channel
 
   def post(self):
     reward = request.get_json(force=True)
@@ -21,7 +23,7 @@ class ControllerResource(Resource):
       print("reward was nan!")
       os._exit(1)
 
-    self.controller.reward += reward
+    self.controller.rewards[self.channel] += reward
     data = self.controller.state
     if data is None:
       data = np.zeros([self.controller.engine.output_size]) #TODO: 1d
@@ -34,19 +36,32 @@ class ControllerResource(Resource):
     return data
 
 class FlaskController(Controller):
-  def __init__(self, engine, niceness=1, port=8181, autostart=True):
-    super().__init__(engine, niceness=1)
+  def __init__(self, engine, niceness=1, port=8181, channels=None, autostart=True):
+    super().__init__(engine, niceness=niceness)
+
+    self.channels = [""] if channels is None else channels
+    self.rewards = defaultdict(float)
 
     self.start_server(port)
 
     if autostart:
       self.loop()
 
+  def loop(self):
+    #accumulate rewards from channels
+    for name, reward in self.rewards.items():
+      self.reward += reward
+      self.rewards[name] = 0
+
+    super().loop()
+
   def start_server(self, port):
     flask_app = Flask(__name__)
     api = Api(flask_app)
 
-    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
+    for channel in self.channels:
+      api.add_resource(ControllerResource, "/{}".format(channel),
+        resource_class_kwargs={"controller": self, "channel": channel})
 
     self.flask_app = flask_app
 
