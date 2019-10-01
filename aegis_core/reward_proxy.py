@@ -71,7 +71,7 @@ class RewardProxy(RequestEngine):
     api = Api(flask_app)
 
     for channel in self.channels:
-      api.add_resource(RewardResource, "/{}".format(channel), endpoint=channel
+      api.add_resource(RewardResource, "/{}".format(channel), endpoint=channel,
         resource_class_kwargs={"proxy": self, "channel": channel})
 
     self.flask_app = flask_app
