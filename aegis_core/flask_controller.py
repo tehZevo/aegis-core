@@ -16,19 +16,18 @@ class ControllerResource(Resource):
   def post(self):
     reward = request.get_json(force=True)
     if reward is None:
-      print("reward was none!")
+      raise ValueError("Reward was none!")
       os._exit(1)
     if math.isnan(reward):
-      print("reward was nan!")
+      raise ValueError("Reward was nan!")
       os._exit(1)
 
     self.controller.reward += reward
     data = self.controller.state
     if data is None:
-      data = np.zeros([self.controller.engine.output_size]) #TODO: 1d
-    #print("DATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", data)
+      data = np.zeros(self.controller.engine.output_shape)
     if np.isnan(data).any():
-      print("OH NO, NANS IN OUTPUT! {}".format(data))
+      raise ValueError("NANS IN OUTPUT! {}".format(data))
       os._exit(1)
     data = jsonify(data.tolist())
 

@@ -9,13 +9,15 @@ from .engine import RequestEngine, sanitize
 
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
-      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None):
+      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
+      action_repeat=1):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
     self.end_reward = end_reward
     self.run_name = run_name
     self.reward_proxy = None if reward_proxy is None else sanitize(reward_proxy)
+    self.action_repeat = action_repeat
 
     #TODO: make viz_interval steps instead of episodes
     self.viz_interval = viz_interval
@@ -24,12 +26,12 @@ class EnvEngine(RequestEngine):
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
-    self.output_size = self.env.observation_space.shape[0] #TODO: handle multidim
+    self.output_shape = self.env.observation_space.shape
 
     if self.is_discrete:
-      self.input_size = self.env.action_space.n
+      self.input_shape = [self.env.action_space.n]
     else:
-      self.input_size = self.env.action_space.shape[0] #TODO: handle multidim
+      self.input_shape = self.env.action_space.shape
 
     self.episode_rewards = []
     self.step_rewards = []
@@ -69,11 +71,18 @@ class EnvEngine(RequestEngine):
     if self.is_discrete:
       action = np.argmax(action)
 
-    state, last_reward, done, info = self.env.step(action)
+    r = 0
+    for i in range(self.action_repeat):
+      state, reward, done, info = self.env.step(action)
+      r += reward
+      if done:
+        break
+
     if done:
-      last_reward += self.end_reward
-    self.last_reward = last_reward
-    self.step_rewards.append(last_reward)
+      r += self.end_reward
+
+    self.last_reward = r
+    self.step_rewards.append(r)
 
     if done:
       state = self.env.reset()

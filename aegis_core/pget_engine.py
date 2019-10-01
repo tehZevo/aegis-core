@@ -36,7 +36,7 @@ class PGETEngine(RequestEngine):
     self.noise = noise
     self.reward_propagation = 0.9
 
-    # :|
+    #TODO: support more optimizers by name... or by object
     self.optimizer = None if optimizer is None else tf.train.AdamOptimizer(self.lr)
     self.propagate_advantage = propagate_advantage
     self.save_interval = save_interval
@@ -45,9 +45,9 @@ class PGETEngine(RequestEngine):
 
     self.modelpath = modelpath
     self.model = tf.keras.models.load_model(modelpath)
-    #TODO: hardcoded 1d
-    self.input_size = self.model.input_shape[-1]
-    self.output_size = self.model.output_shape[-1]
+
+    self.input_shape = tuple(self.model.input_shape[1:])
+    self.output_shape = tuple(self.model.output_shape[1:])
 
     #TODO: try huber loss again?
     self.loss = categorical_crossentropy if is_discrete else tf.losses.mean_squared_error
@@ -71,7 +71,7 @@ class PGETEngine(RequestEngine):
     #TODO: other reward propagation schemes?
     input_states = self.get_inputs(prop_reward * self.reward_propagation / len(self.input_urls))
     #fix Nones
-    input_states = [np.zeros([self.input_size]) if x is None else x for x in input_states]
+    input_states = [np.zeros(self.input_shape) if x is None else x for x in input_states]
     #TODO: try running on each input, then averaging?
     input_state = np.mean(input_states, axis=0) #TODO: this will fail for discrete where a state is missing (set to 0s...) actually maybe not
     output_state = self.get_output_and_update_traces(input_state)

@@ -21,25 +21,25 @@ from .engine import RequestEngine
 #not a "controller", but needs `state` and `reward` variables
 #TODO: reward propagation...?
 class AegisEnv(gym.Env):
-  def __init__(self, obs_size, action_size, input_urls=[], discrete=False, sleep=0.1, port=8181):
-    self.input_size = obs_size
-    self.output_size = action_size
+  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False, sleep=0.1, port=8181):
+    self.input_shape = obs_shape
+    self.output_shape = action_shape
     self.sleep = sleep
     #TODO: remove dummy (requires controllerresource refactor?)
-    self.engine = {"input_size":self.input_size, "output_size":self.output_size}
+    self.engine = {"input_shape":self.input_shape, "output_shape":self.output_shape}
     #TODO: hardcoded low/highs
-    self.observation_space = spaces.Box(shape=[obs_size], low=-np.Inf, high=np.Inf)
-    self.action_space = spaces.Discrete(action_size) if discrete else spaces.Box(shape=[action_size], low=-np.Inf, high=np.Inf)
+    self.observation_space = spaces.Box(shape=[obs_shape], low=-np.Inf, high=np.Inf)
+    self.action_space = spaces.Discrete(action_shape) if discrete else spaces.Box(shape=[action_shape], low=-np.Inf, high=np.Inf)
     self.discrete = discrete
     #despite it being named "state", this is actually the output (ie action)
     #of the agent, to be passed to whichever agents request it down the line
     #do NOT return this from reset/step
-    self.state = np.zeros([action_size]) #TODO: set to none to start?
+    self.state = np.zeros(action_shape) #TODO: set to none to start?
     #reward for the next step
     self.reward = 0
 
     self.request_engine = RequestEngine(input_urls)
-    self.request_engine.input_size = self.input_size #TODO: sigh, more patchwork
+    self.request_engine.input_shape = self.input_shape #TODO: sigh, more patchwork
     self.start_server(port)
 
   def step(self, action):
@@ -59,7 +59,7 @@ class AegisEnv(gym.Env):
   def get_observation(self, reward):
     #TODO: reward propagation scheme?
     inputs = self.request_engine.get_inputs(reward)
-    inputs = [np.zeros([self.input_size]) if x is None else x for x in inputs]
+    inputs = [np.zeros(self.input_shape) if x is None else x for x in inputs]
     #TODO: other merge methods?
     return np.mean(inputs, axis=0)
 

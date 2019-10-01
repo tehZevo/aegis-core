@@ -13,7 +13,8 @@ def sanitize(url):
 
 class Engine:
   def __init__(self):
-    pass
+    self.input_shape = None
+    self.output_shape = None
 
   def update(self, reward):
     return None
