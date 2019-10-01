@@ -3,7 +3,7 @@ from tensorflow.keras.utils import to_categorical
 
 from ml_utils.viz import save_plot
 
-from .engine import RequestEngine
+from .engine import RequestEngine, sanitize
 
 #TODO: action repeat?
 
@@ -15,7 +15,7 @@ class EnvEngine(RequestEngine):
     self.env = env;
     self.end_reward = end_reward
     self.run_name = run_name
-    self.reward_proxy = reward_proxy
+    self.reward_proxy = None if reward_proxy is None else sanitize(reward_proxy)
 
     #TODO: make viz_interval steps instead of episodes
     self.viz_interval = viz_interval
