@@ -47,13 +47,11 @@ class FlaskController(Controller):
     if autostart:
       self.loop()
 
-  def loop(self):
+  def pre_step(self):
     #accumulate rewards from channels
     for name, reward in self.rewards.items():
       self.reward += reward
       self.rewards[name] = 0
-
-    super().loop()
 
   def start_server(self, port):
     flask_app = Flask(__name__)

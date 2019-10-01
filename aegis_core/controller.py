@@ -7,8 +7,13 @@ class Controller:
     self.reward = 0
     self.state = None #TODO: initial value?
 
+  def pre_step(self):
+    pass
+
   def loop(self):
     while True:
+      self.pre_step()
+
       r = self.reward
       self.reward = 0
       starttime = time.time()
