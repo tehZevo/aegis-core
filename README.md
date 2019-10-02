@@ -28,8 +28,6 @@ Currently, the protocol is implemented using a single HTTP POST request.
 ## TODO
 * support environments with discrete observation spaces
 
-* support environments with multidimensional observation and action spaces
-
 * VAE engine
   * stores seen inputs and trains on them
 
