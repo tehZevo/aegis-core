@@ -10,7 +10,7 @@ from .engine import RequestEngine, sanitize
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
       viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
-      action_repeat=1, draw_raw_actions=False):
+      action_repeat=1, draw_raw_actions=True):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
