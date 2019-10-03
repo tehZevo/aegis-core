@@ -92,10 +92,10 @@ class EnvEngine(RequestEngine):
 
       episode_action = np.mean(self.step_actions, axis=0)
       self.episode_actions.append(episode_action)
-      self.step_actions = []
 
-      print("Ep {}: {}".format(len(self.episode_rewards), episode_reward))
+      print("Ep {}: {} ({} steps)".format(len(self.episode_rewards), episode_reward, len(self.step_rewards)))
       self.step_rewards = []
+      self.step_actions = []
 
       if len(self.episode_rewards) % self.viz_interval == 0:
         save_plot(self.episode_rewards, "{} Episode rewards".format(self.run_name),
