@@ -1,12 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from ml_utils.keras import get_states, set_states, apply_regularization
-from ml_utils.viz import viz_weights
-
-from pget.pget import create_traces, update_traces, step_weights
-from pget.pget import explore_continuous, explore_discrete, categorical_crossentropy
-
 from .engine import RequestEngine
 
 from tensorflow.keras.applications import VGG16, VGG19, ResNet50, InceptionV3, \

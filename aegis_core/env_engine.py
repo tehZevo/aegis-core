@@ -10,7 +10,7 @@ from .engine import RequestEngine, sanitize
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
       viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
-      action_repeat=1, draw_raw_actions=True):
+      action_repeat=1, draw_raw_actions=True, render=False):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
@@ -19,6 +19,7 @@ class EnvEngine(RequestEngine):
     self.reward_proxy = None if reward_proxy is None else sanitize(reward_proxy)
     self.action_repeat = action_repeat
     self.draw_raw_actions = draw_raw_actions
+    self.render = render
 
     #TODO: make viz_interval steps instead of episodes
     self.viz_interval = viz_interval
@@ -102,5 +103,8 @@ class EnvEngine(RequestEngine):
           self.viz_smoothing, q=self.viz_quantile)
         save_plot(self.episode_actions, "{} Actions".format(self.run_name),
           self.viz_smoothing, draw_raw=self.draw_raw_actions)
+
+    if self.render:
+      self.env.render()
 
     return state
