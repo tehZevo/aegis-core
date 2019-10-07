@@ -5,7 +5,8 @@ from ml_utils.keras import get_states, set_states, apply_regularization
 from ml_utils.viz import viz_weights
 
 from pget.pget import create_traces, update_traces, step_weights
-from pget.pget import explore_continuous, explore_discrete, categorical_crossentropy
+from pget.pget import explore_continuous, explore_discrete, explore_multibinary
+from pget.pget import categorical_crossentropy, binary_crossentropy
 
 from .engine import RequestEngine
 
@@ -14,7 +15,7 @@ from .engine import RequestEngine
 # same with discrete softmax or whatever
 
 class PGETEngine(RequestEngine):
-  def __init__(self, modelpath, is_discrete, input_urls=[], save_interval=1000,
+  def __init__(self, modelpath, exploration_method="continuous", input_urls=[], save_interval=1000,
       #general config
       train=True, alt_trace_method=False, reward_transform=lambda x: x,
       reward_propagation=0, propagate_advantage=False,
@@ -34,7 +35,9 @@ class PGETEngine(RequestEngine):
     self.regularization = regularization_scale * self.lr
     self.reward_transform = reward_transform
     self.noise = noise
-    self.reward_propagation = 0.9
+    self.exploration = exploration_method.lower()
+    #wow i actually forgot to change this from 0.9...
+    self.reward_propagation = reward_propagation
 
     #TODO: support more optimizers by name... or by object
     self.optimizer = None if optimizer is None else tf.train.AdamOptimizer(self.lr)
@@ -49,9 +52,19 @@ class PGETEngine(RequestEngine):
     self.input_shape = tuple(self.model.input_shape[1:])
     self.output_shape = tuple(self.model.output_shape[1:])
 
-    #TODO: try huber loss again?
-    self.loss = categorical_crossentropy if is_discrete else tf.losses.mean_squared_error
-    explore_func = explore_discrete if is_discrete else explore_continuous
+    if self.exploration == "discrete":
+      self.loss = categorical_crossentropy
+      explore_func = explore_discrete
+    elif self.exploration == "multibinary":
+      self.loss = binary_crossentropy
+      explore_func = explore_multibinary
+    elif self.exploration == "continuous":
+      #TODO: try huber loss again?
+      self.loss = tf.losses.mean_squared_error
+      explore_func = explore_continuous
+    else:
+      raise ValueError("Unknown exploration method '{}'".format(exploration_method))
+      
     self.explore = lambda x: explore_func(x, self.noise)
 
     self.traces = create_traces(self.model)
