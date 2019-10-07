@@ -9,8 +9,9 @@ from .engine import RequestEngine, sanitize
 
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
-      viz_interval=100, viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
-      action_repeat=1, draw_raw_actions=True, render=False):
+      viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
+      action_repeat=1, draw_raw_actions=True, render=False, report_interval=1,
+      interval_type="episode"):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
@@ -21,10 +22,12 @@ class EnvEngine(RequestEngine):
     self.draw_raw_actions = draw_raw_actions
     self.render = render
 
-    #TODO: make viz_interval steps instead of episodes
-    self.viz_interval = viz_interval
     self.viz_quantile = viz_quantile
     self.viz_smoothing = viz_smoothing
+
+    self.report_interval = report_interval
+    self.interval_type = interval_type
+    self.interval_counter = 0
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
@@ -35,10 +38,10 @@ class EnvEngine(RequestEngine):
     else:
       self.input_shape = self.env.action_space.shape
 
-    self.episode_rewards = []
+    self.interval_rewards = []
     self.step_rewards = []
 
-    self.episode_actions = []
+    self.interval_actions = []
     self.step_actions = []
 
     self.env.reset()
@@ -88,21 +91,28 @@ class EnvEngine(RequestEngine):
 
     if done:
       state = self.env.reset()
-      episode_reward = np.sum(self.step_rewards)
-      self.episode_rewards.append(episode_reward)
 
-      episode_action = np.mean(self.step_actions, axis=0)
-      self.episode_actions.append(episode_action)
+    #TODO: use callbacks...
+    if ((self.interval_type == "episode" and done) or self.interval_type == "step":
+      self.interval_counter += 1
 
-      print("Ep {}: {} ({} steps)".format(len(self.episode_rewards), episode_reward, len(self.step_rewards)))
+    if self.interval_counter >= self.report_interval:
+      self.interval_counter = 0
+      interval_reward = np.sum(self.step_rewards)
+      self.interval_rewards.append(interval_reward)
+
+      interval_action = np.mean(self.step_actions, axis=0)
+      self.interval_actions.append(interval_action)
+
+      step_or_ep = "Episode" if self.interval_type == "episode" else "Interval"
+      print("{} {}: {} ({} steps)".format(step_or_ep, len(self.interval_rewards), interval_reward, len(self.step_rewards)))
       self.step_rewards = []
       self.step_actions = []
 
-      if len(self.episode_rewards) % self.viz_interval == 0:
-        save_plot(self.episode_rewards, "{} Episode rewards".format(self.run_name),
-          self.viz_smoothing, q=self.viz_quantile)
-        save_plot(self.episode_actions, "{} Actions".format(self.run_name),
-          self.viz_smoothing, draw_raw=self.draw_raw_actions)
+      save_plot(self.interval_rewards, "{} {} Rewards".format(self.run_name, step_or_ep),
+        self.viz_smoothing, q=self.viz_quantile)
+      save_plot(self.interval_actions, "{} {} Actions".format(self.run_name, step_or_ep),
+        self.viz_smoothing, draw_raw=self.draw_raw_actions)
 
     if self.render:
       self.env.render()
