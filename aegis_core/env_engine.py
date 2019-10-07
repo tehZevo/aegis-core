@@ -93,7 +93,7 @@ class EnvEngine(RequestEngine):
       state = self.env.reset()
 
     #TODO: use callbacks...
-    if ((self.interval_type == "episode" and done) or self.interval_type == "step":
+    if (self.interval_type == "episode" and done) or self.interval_type == "step":
       self.interval_counter += 1
 
     if self.interval_counter >= self.report_interval:
