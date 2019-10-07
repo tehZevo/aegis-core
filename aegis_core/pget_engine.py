@@ -21,7 +21,7 @@ class PGETEngine(RequestEngine):
       reward_propagation=0, propagate_advantage=False,
       #hyperparameters
       epsilon=1e-7, advantage_clip=1, gamma=0.99, lr=1e-4, lambda_=0.9,
-      regularization_scale=1e-4, optimizer="adam", noise=0.1):
+      regularization_scale=1e-4, optimizer="adam", noise=0.1, initial_variance=10):
     super().__init__(input_urls=input_urls)
 
     #TODO: populate hyperparameters from arguments
@@ -71,7 +71,7 @@ class PGETEngine(RequestEngine):
     self.traces = create_traces(self.model)
 
     self.reward_mean = 0
-    self.reward_variance = 10
+    self.reward_variance = initial_variance
 
   def update(self, reward):
     transformed_reward = self.reward_transform(reward)

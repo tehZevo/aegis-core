@@ -11,7 +11,7 @@ class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
       viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
       action_repeat=1, draw_raw_actions=True, render=False, report_interval=1,
-      interval_type="episode"):
+      interval_type="episode", obs_scale=None):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
@@ -28,6 +28,8 @@ class EnvEngine(RequestEngine):
     self.report_interval = report_interval
     self.interval_type = interval_type
     self.interval_counter = 0
+
+    self.obs_scale = obs_scale
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
@@ -116,5 +118,9 @@ class EnvEngine(RequestEngine):
 
     if self.render:
       self.env.render()
+
+    #temporary sanity for atari ram
+    if self.obs_scale is not None:
+      state = self.obs_scale(state)
 
     return state
