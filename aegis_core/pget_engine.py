@@ -6,7 +6,7 @@ from ml_utils.viz import viz_weights
 
 from pget.pget import create_traces, update_traces, step_weights
 from pget.pget import explore_continuous, explore_discrete, explore_multibinary
-from pget.pget import categorical_crossentropy, binary_crossentropy
+#from pget.pget import categorical_crossentropy, binary_crossentropy
 
 from .engine import RequestEngine
 
@@ -53,10 +53,11 @@ class PGETEngine(RequestEngine):
     self.output_shape = tuple(self.model.output_shape[1:])
 
     if self.exploration == "discrete":
-      self.loss = categorical_crossentropy
+      #self.loss = categorical_crossentropy
+      self.loss = tf.keras.losses.categorical_crossentropy
       explore_func = explore_discrete
     elif self.exploration == "multibinary":
-      self.loss = binary_crossentropy
+      self.loss = tf.keras.losses.binary_crossentropy
       explore_func = explore_multibinary
     elif self.exploration == "continuous":
       #TODO: try huber loss again?
@@ -64,7 +65,7 @@ class PGETEngine(RequestEngine):
       explore_func = explore_continuous
     else:
       raise ValueError("Unknown exploration method '{}'".format(exploration_method))
-      
+
     self.explore = lambda x: explore_func(x, self.noise)
 
     self.traces = create_traces(self.model)
