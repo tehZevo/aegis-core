@@ -38,7 +38,7 @@ class TensorboardCallback(AegisCallback):
       else s.text)
 
   def do_callback(self, data):
-    self.summary_type(self.prefix + "/" + self.field, data[self.field], self.step)
+    self.summary_type(self.prefix + "/" + self.field, data[self.field], step=self.step)
     self.step += 1
 
   def __call__(self, data):
