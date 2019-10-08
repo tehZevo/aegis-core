@@ -33,8 +33,9 @@ class ValueCallback(AegisCallback):
   def __call__(self, data):
     self.values.append(data[self.field])
     self.step_counter += 1
-    if ((type(self.interval) is str and data[self.interval]) or
-        self.step_counter >= self.interval):
+    interval_is_str = type(self.interval) is str
+    if ((interval_is_str and data[self.interval]) or
+        (not interval_is_str and self.step_counter >= self.interval)):
       self.step_counter = 0
       #reduce
       value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
