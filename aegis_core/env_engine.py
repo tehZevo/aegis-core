@@ -14,7 +14,6 @@ class EnvEngine(RequestEngine):
     self.run_name = run_name
     self.reward_proxy = None if reward_proxy is None else sanitize(reward_proxy)
     self.action_repeat = action_repeat
-    self.draw_raw_actions = draw_raw_actions
     self.render = render
 
     self.obs_scale = obs_scale
