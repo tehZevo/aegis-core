@@ -1,14 +1,27 @@
 import tensorflow as tf
 import numpy as np
 
-#WIP
+from ml_utils.viz import save_plot, viz_weights
+
+#some common callbacks for env nodes
+#TODO
+def env_callbacks(summary_writer, interval=1000):
+  cbs = []
+  cbs.append(
+    TensorboardCallback(summary_writer, "reward", suffix=args.environment,
+      reduce="sum", interval=interval, step_for_step=False)
+  )
+  cbs.append(ValuePrinter("reward", interval=interval , reduce="sum"))
+
+  return cbs
+
 class AegisCallback():
   def __init__(self, interval):
     self.interval = interval
     self.step_counter = 0
     self.call_counter = 0
 
-  def do_callback(self, data):
+  def do_callbacqk(self, data):
     pass
 
   def __call__(self, data):
@@ -46,11 +59,24 @@ class ValueCallback(AegisCallback):
       self.values = []
       self.do_callback(self.value)
 
-#TODO
+#TODO: max length?
 class GraphCallback(ValueCallback):
-  def __init__(self, path, field, interval=None, title=None):
-    pass
+  def __init__(self, field, interval=None, title=None, reduce="mean",
+      smoothing=0.1, draw_raw=True, quantile=0):
+    super().__init__(field, interval=interval, reduce=reduce)
+    self.graph_values = []
+    self.smoothing = smoothing
+    self.draw_raw = draw_raw
+    self.title = field if title is None else title
+    self.quantile = quantile
 
+  def do_callback(self, value):
+    self.graph_values.append(value)
+    #TODO: separate title/path?
+    save_plot(self.graph_values, self.title, self.smoothing,
+      q=self.quantile, draw_raw=self.draw_raw)
+
+#TODO: histogram per action?
 class TensorboardCallback(ValueCallback):
   """ Requires TF eager to be enabled """
   def __init__(self, writer, field, interval=None, suffix="",
@@ -82,7 +108,7 @@ class TensorboardCallback(ValueCallback):
 
 class ValuePrinter(ValueCallback):
   def __init__(self, field, interval=None, reduce="sum", interval_name="Ep"):
-    super().__init__(interval=interval, reduce=reduce)
+    super().__init__(field, interval=interval, reduce=reduce)
     interval_name = interval_name
 
   def do_callback(self, value):
