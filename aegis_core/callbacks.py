@@ -6,20 +6,22 @@ class AegisCallback():
   def __init__(self, interval):
     self.interval = interval
     self.step_counter = 0
+    self.call_counter = 0
 
   def do_callback(self, data):
     pass
 
   def __call__(self, data):
     self.step_counter += 1
-    if self.step_counter >= self.interval:
+    if self.interval is None or self.step_counter >= self.interval:
       self.step_counter = 0
+      self.call_counter += 1
       self.do_callback(data)
 
 class ValueCallback(AegisCallback):
-  def __init__(self, field, interval=1000, reduce="sum"):
-    """ reduce can be either "mean", "sum", or None, in which case, the last
-    value is used. If a string interval is provided, the callback will wait
+  def __init__(self, field, interval=None, reduce="sum"):
+    """Reduce can be either "mean", "sum", or None, in which case, all values
+    are used. If a string interval is provided, the callback will wait
     until data[interval] is truthy.
     """
     super().__init__(interval=interval)
@@ -37,15 +39,21 @@ class ValueCallback(AegisCallback):
     if ((interval_is_str and data[self.interval]) or
         (not interval_is_str and self.step_counter >= self.interval)):
       self.step_counter = 0
+      self.call_counter += 1
       #reduce
-      value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
-        np.sum(self.values, axis=0) if self.reduce_method == "sum" else self.values[-1])
+      self.value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
+        np.sum(self.values, axis=0) if self.reduce_method == "sum" else self.values)
       self.values = []
-      self.do_callback(value)
+      self.do_callback(self.value)
+
+#TODO
+class GraphCallback(ValueCallback):
+  def __init__(self, path, field, interval=None, title=None):
+    pass
 
 class TensorboardCallback(ValueCallback):
   """ Requires TF eager to be enabled """
-  def __init__(self, writer, field, interval=1000, suffix="",
+  def __init__(self, writer, field, interval=None, suffix="",
        summary_type="scalar", reduce="sum", step_for_step=True):
     super().__init__(field, interval=interval, reduce=reduce)
     self.writer = writer
@@ -72,9 +80,17 @@ class TensorboardCallback(ValueCallback):
         self.step += 1
       super().__call__(data)
 
+class ValuePrinter(ValueCallback):
+  def __init__(self, field, interval=None, reduce="sum", interval_name="Ep"):
+    super().__init__(interval=interval, reduce=reduce)
+    interval_name = interval_name
+
+  def do_callback(self, value):
+    print("{} {}: {}".format(self.interval_name, self.call_counter, value))
+
 #TODO: get path from engine
 class WeightVisualizer(AegisCallback):
-  def __init__(self, path, interval=1000):
+  def __init__(self, path, interval=None):
     super().__init__(interval)
     self.path = path
 
@@ -84,7 +100,7 @@ class WeightVisualizer(AegisCallback):
 
 #TODO: get path from engine
 class ModelSaver(AegisCallback):
-  def __init__(self, path, interval=1000):
+  def __init__(self, path, interval=None):
     super().__init__(interval)
     self.path = path
 
@@ -94,8 +110,3 @@ class ModelSaver(AegisCallback):
       print("saving model to {}".format(self.path))
       self.model.save(self.path)
       self.steps_since_save = 0
-
-class RewardPrinter(AegisCallback):
-  def __init__(self, interval=100):
-    super().__init__(interval)
-    self.rewards = []

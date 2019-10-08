@@ -6,14 +6,14 @@ from ml_utils.viz import save_plot
 from .engine import RequestEngine, sanitize
 
 class EnvEngine(RequestEngine):
-  def __init__(self, env, end_reward, action_url, run_name="",
+  def __init__(self, env, done_reward, action_url, run_name="",
       viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
       action_repeat=1, draw_raw_actions=True, render=False, report_interval=1,
       interval_type="episode", obs_scale=None, callbacks=[]):
     super().__init__(input_urls=[action_url])
 
-    self.env = env;
-    self.end_reward = end_reward
+    self.env = env
+    self.done_reward = done_reward
     self.run_name = run_name
     self.reward_proxy = None if reward_proxy is None else sanitize(reward_proxy)
     self.action_repeat = action_repeat
@@ -87,7 +87,7 @@ class EnvEngine(RequestEngine):
         break
 
     if done:
-      r += self.end_reward
+      r += self.done_reward
 
     self.last_reward = r
     self.step_rewards.append(r)
