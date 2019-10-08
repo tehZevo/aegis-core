@@ -89,6 +89,7 @@ class TensorboardCallback(ValueCallback):
     super().__init__(field, interval=interval, reduce=reduce)
     self.writer = writer
     self.step = 0
+    self.prefix = prefix
     self.suffix = suffix
     self.step_for_step = step_for_step
 
