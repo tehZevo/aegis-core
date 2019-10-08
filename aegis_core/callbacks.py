@@ -55,7 +55,7 @@ class ValueCallback(AegisCallback):
       self.call_counter += 1
       #reduce
       self.value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
-        np.sum(self.values, axis=0) if self.reduce_method == "sum" else self.values)
+        np.sum(self.values, axis=0) if self.reduce_method == "sum" else np.array(self.values))
       self.values = []
       self.do_callback(self.value)
 
