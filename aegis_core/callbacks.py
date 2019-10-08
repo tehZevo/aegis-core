@@ -27,6 +27,8 @@ class TensorboardCallback(AegisCallback):
     super().__init__(interval=1)
     self.writer = writer
     self.step = 0
+    self.prefix = prefix
+    self.field = field
 
     #TODO: support other types
     s = tf.contrib.summary
@@ -36,7 +38,7 @@ class TensorboardCallback(AegisCallback):
       else s.text)
 
   def do_callback(self, data):
-    self.summary_type(prefix + "/" + field, data[field], self.step)
+    self.summary_type(self.prefix + "/" + self.field, data[self.field], self.step)
     self.step += 1
 
   def __call__(self, data):
