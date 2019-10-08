@@ -16,18 +16,41 @@ class AegisCallback():
       self.step_counter = 0
       self.do_callback(data)
 
-#TODO: how to handle step vs episode...?
-class TensorboardCallback(AegisCallback):
-  """ Requires TF eager to be enabled """
-  def __init__(self, writer, field, summary_type="scalar", suffix="",
-      interval=100, reduce="sum"):
+class ValueCallback(AegisCallback):
+  def __init__(self, field, interval=1000, reduce="sum"):
+    """ reduce can be either "mean", "sum", or None, in which case, the last
+    value is used. If a string interval is provided, the callback will wait
+    until data[interval] is truthy.
+    """
     super().__init__(interval=interval)
+    self.field = field
+    self.reduce_method = reduce
+    self.values = []
+
+  def do_callback(self, value):
+    pass
+
+  def __call__(self, data):
+    self.values.append(data[self.field])
+    self.step_counter += 1
+    if ((type(self.interval) == str and data[self.interval]) or
+        self.step_counter >= self.interval:
+      self.step_counter = 0
+      #reduce
+      value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
+        np.sum(self.values, axis=0) if self.reduce_method == "sum" else self.values[-1])
+      self.values = []
+      self.do_callback(value)
+
+class TensorboardCallback(ValueCallback):
+  """ Requires TF eager to be enabled """
+  def __init__(self, writer, field, interval=1000, suffix="",
+       summary_type="scalar", reduce="sum", step_for_step=True):
+    super().__init__(field, interval=interval, reduce)
     self.writer = writer
     self.step = 0
     self.suffix = suffix
-    self.field = field
-    self.values = []
-    self.reduce = reduce
+    self.step_for_step = step_for_step
 
     #TODO: support other types
     s = tf.contrib.summary
@@ -36,17 +59,16 @@ class TensorboardCallback(AegisCallback):
       else s.histogram if stype == "histogram"
       else s.text)
 
-  def do_callback(self, data):
-    value = (np.mean(self.values, axis=0) if self.reduce == "mean" else
-      np.sum(self.values, axis=0) if self.reduce == "sum" else self.values[-1])
-
+  def do_callback(self, value):
     self.summary_type(self.field + "/" + self.suffix, value, step=self.step)
-    self.values = []
+
+    if not self.step_for_step:
+      self.step += 1
 
   def __call__(self, data):
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-      self.values.append(data[self.field])
-      self.step += 1
+      if self.step_for_step:
+        self.step += 1
       super().__call__(data)
 
 #TODO: get path from engine
