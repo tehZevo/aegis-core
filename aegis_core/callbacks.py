@@ -34,7 +34,7 @@ class ValueCallback(AegisCallback):
     self.values.append(data[self.field])
     self.step_counter += 1
     if ((type(self.interval) == str and data[self.interval]) or
-        self.step_counter >= self.interval:
+        self.step_counter >= self.interval):
       self.step_counter = 0
       #reduce
       value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
