@@ -105,7 +105,7 @@ class TensorboardCallback(ValueCallback):
     if self.prefix is not None:
       name += self.prefix + " "
     name += self.field
-    if self.sufix is not None:
+    if self.suffix is not None:
       name += "/" + self.suffix
     self.summary_type(name, value, step=self.step)
 
