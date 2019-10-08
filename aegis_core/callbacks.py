@@ -46,7 +46,7 @@ class TensorboardCallback(ValueCallback):
   """ Requires TF eager to be enabled """
   def __init__(self, writer, field, interval=1000, suffix="",
        summary_type="scalar", reduce="sum", step_for_step=True):
-    super().__init__(field, interval=interval, reduce)
+    super().__init__(field, interval=interval, reduce=reduce)
     self.writer = writer
     self.step = 0
     self.suffix = suffix
