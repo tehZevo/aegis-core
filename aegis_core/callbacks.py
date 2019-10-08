@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 #WIP
 class AegisCallback():
@@ -40,12 +41,12 @@ class TensorboardCallback(AegisCallback):
       np.sum(self.values, axis=0) if self.reduce == "sum" else self.values[-1])
 
     self.summary_type(self.field + "/" + self.suffix, value, step=self.step)
-    self.step += 1
     self.values = []
 
   def __call__(self, data):
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
       self.values.append(data[self.field])
+      self.step += 1
       super().__call__(data)
 
 #TODO: get path from engine
