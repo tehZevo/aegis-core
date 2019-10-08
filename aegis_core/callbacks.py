@@ -15,20 +15,18 @@ class AegisCallback():
       self.step_counter = 0
       self.do_callback(data)
 
-#logs
-# node_run_name
-#
-
 #TODO: how to handle step vs episode...?
-#TODO: accumulate
 class TensorboardCallback(AegisCallback):
   """ Requires TF eager to be enabled """
-  def __init__(self, writer, field, summary_type="scalar", prefix=""):
-    super().__init__(interval=1)
+  def __init__(self, writer, field, summary_type="scalar", suffix="",
+      interval=100, reduce="sum"):
+    super().__init__(interval=interval)
     self.writer = writer
     self.step = 0
-    self.prefix = prefix
+    self.suffix = suffix
     self.field = field
+    self.values = []
+    self.reduce = reduce
 
     #TODO: support other types
     s = tf.contrib.summary
@@ -38,11 +36,16 @@ class TensorboardCallback(AegisCallback):
       else s.text)
 
   def do_callback(self, data):
-    self.summary_type(self.prefix + "/" + self.field, data[self.field], step=self.step)
+    value = (np.mean(self.values, axis=0) if self.reduce == "mean" else
+      np.sum(self.values, axis=0) if self.reduce == "sum" else self.values[-1])
+
+    self.summary_type(self.field + "/" + self.suffix, value, step=self.step)
     self.step += 1
+    self.values = []
 
   def __call__(self, data):
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+      self.values.append(data[self.field])
       super().__call__(data)
 
 #TODO: get path from engine
