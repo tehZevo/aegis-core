@@ -13,6 +13,33 @@ class AegisCallback():
       self.step_counter = 0
       self.do_callback(engine)
 
+#logs
+# node_run_name
+#
+
+#TODO: how to handle step vs episode...?
+#TODO: accumulate
+class TensorboardCallback(AegisCallback):
+  def __init__(self, writer, field, summary_type="scalar", prefix=""):
+    super().__init__(interval=1)
+    self.writer = writer
+    self.step = 0
+
+    #TODO: support other types
+    s = tf.contrib.summary
+    stype = summary_type.lower()
+    self.summary_type = (s.scalar if stype == "scalar"
+      else s.histogram if stype == "histogram"
+      else s.text)
+
+  def do_callback(self, data):
+    self.summary_type(prefix + "/" + field, data[field], self.step)
+    self.step += 1
+
+  def __call__(self, engine):
+    with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+      super().__call__(self, engine)
+
 #TODO: get path from engine
 class WeightVisualizer(AegisCallback):
   def __init__(self, path, interval=1000):

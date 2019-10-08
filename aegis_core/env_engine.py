@@ -5,13 +5,11 @@ from ml_utils.viz import save_plot
 
 from .engine import RequestEngine, sanitize
 
-#TODO: action repeat?
-
 class EnvEngine(RequestEngine):
   def __init__(self, env, end_reward, action_url, run_name="",
       viz_quantile=0.05, viz_smoothing=0.1, reward_proxy=None,
       action_repeat=1, draw_raw_actions=True, render=False, report_interval=1,
-      interval_type="episode", obs_scale=None):
+      interval_type="episode", obs_scale=None, callbacks=[]):
     super().__init__(input_urls=[action_url])
 
     self.env = env;
@@ -30,6 +28,7 @@ class EnvEngine(RequestEngine):
     self.interval_counter = 0
 
     self.obs_scale = obs_scale
+    self.callbacks = callbacks
 
     self.last_reward = 0
     self.is_discrete = self.env.action_space.shape == ()
@@ -61,6 +60,8 @@ class EnvEngine(RequestEngine):
     return action
 
   def update(self, reward):
+    cb_data = {}
+
     #if we have a reward proxy, send the reward there instead of the upstream node
     if self.reward_proxy is not None:
       self.get_single_input(self.reward_proxy, self.last_reward)
@@ -93,6 +94,16 @@ class EnvEngine(RequestEngine):
 
     if done:
       state = self.env.reset()
+
+    cb_data["reward"] = r
+    cb_data["done"] = done
+    cb_data["step_rewards"] = self.step_rewards
+    cb_data["step_actions"] = self.step_actions
+    cb_data["state"] = state
+    cb_data["engine"] = self
+
+    for cb in self.callbacks:
+      cb(cb_data)
 
     #TODO: use callbacks...
     if (self.interval_type == "episode" and done) or self.interval_type == "step":
