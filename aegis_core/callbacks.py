@@ -33,7 +33,7 @@ class ValueCallback(AegisCallback):
   def __call__(self, data):
     self.values.append(data[self.field])
     self.step_counter += 1
-    if ((type(self.interval) == str and data[self.interval]) or
+    if ((type(self.interval) is str and data[self.interval]) or
         self.step_counter >= self.interval):
       self.step_counter = 0
       #reduce
