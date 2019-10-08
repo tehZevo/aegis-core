@@ -72,7 +72,7 @@ class EnvEngine(RequestEngine):
 
     #housekeeping
     action = action.astype("float32")
-
+    og_action = action
     self.step_actions.append(action)
 
     #step env
@@ -100,6 +100,7 @@ class EnvEngine(RequestEngine):
     cb_data["step_rewards"] = self.step_rewards
     cb_data["step_actions"] = self.step_actions
     cb_data["state"] = state
+    cb_data["action"] = og_action
     cb_data["engine"] = self
 
     for cb in self.callbacks:

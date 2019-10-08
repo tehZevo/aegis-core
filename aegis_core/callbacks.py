@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 #WIP
 class AegisCallback():
   def __init__(self, interval):
@@ -20,6 +22,7 @@ class AegisCallback():
 #TODO: how to handle step vs episode...?
 #TODO: accumulate
 class TensorboardCallback(AegisCallback):
+  """ Requires TF eager to be enabled """
   def __init__(self, writer, field, summary_type="scalar", prefix=""):
     super().__init__(interval=1)
     self.writer = writer
