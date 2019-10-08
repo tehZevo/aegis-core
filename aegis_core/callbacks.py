@@ -54,8 +54,13 @@ class ValueCallback(AegisCallback):
       self.step_counter = 0
       self.call_counter += 1
       #reduce
-      self.value = (np.mean(self.values, axis=0) if self.reduce_method == "mean" else
-        np.sum(self.values, axis=0) if self.reduce_method == "sum" else np.array(self.values))
+      if self.reduce_method == "mean":
+        self.value = np.mean(self.values, axis=0)
+      elif self.reduce_method == "sum":
+        self.value = np.sum(self.values, axis=0)
+      else:
+        self.value = np.array(self.values)
+
       self.values = []
       self.do_callback(self.value)
 
@@ -79,7 +84,7 @@ class GraphCallback(ValueCallback):
 #TODO: histogram per action?
 class TensorboardCallback(ValueCallback):
   """ Requires TF eager to be enabled """
-  def __init__(self, writer, field, interval=None, suffix="",
+  def __init__(self, writer, field, interval=None, prefix=None, suffix=None,
        summary_type="scalar", reduce="sum", step_for_step=True):
     super().__init__(field, interval=interval, reduce=reduce)
     self.writer = writer
@@ -95,7 +100,13 @@ class TensorboardCallback(ValueCallback):
       else s.text)
 
   def do_callback(self, value):
-    self.summary_type(self.field + "/" + self.suffix, value, step=self.step)
+    name = ""
+    if self.prefix is not None:
+      name += self.prefix + " "
+    name += self.field
+    if self.sufix is not None:
+      name += "/" + self.suffix
+    self.summary_type(name, value, step=self.step)
 
     if not self.step_for_step:
       self.step += 1
@@ -105,6 +116,11 @@ class TensorboardCallback(ValueCallback):
       if self.step_for_step:
         self.step += 1
       super().__call__(data)
+
+class TensorboardActions(TensorboardCallback):
+  def __init__(self, writer, env_name, interval=None, step_for_step=True):
+    super().__init__(writer, "action", interval=interval, prefix=env_name,
+      reduce="mean", step_for_step=step_for_step, summary_type="histogram")
 
 class ValuePrinter(ValueCallback):
   def __init__(self, field, interval=None, reduce="sum", interval_name="Ep"):
