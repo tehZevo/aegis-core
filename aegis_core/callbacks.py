@@ -6,14 +6,14 @@ class AegisCallback():
     self.interval = interval
     self.step_counter = 0
 
-  def do_callback(self, engine):
+  def do_callback(self, data):
     pass
 
-  def __call__(self, engine):
+  def __call__(self, data):
     self.step_counter += 1
     if self.step_counter >= self.interval:
       self.step_counter = 0
-      self.do_callback(engine)
+      self.do_callback(data)
 
 #logs
 # node_run_name
@@ -39,9 +39,9 @@ class TensorboardCallback(AegisCallback):
     self.summary_type(prefix + "/" + field, data[field], self.step)
     self.step += 1
 
-  def __call__(self, engine):
+  def __call__(self, data):
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-      super().__call__(self, engine)
+      super().__call__(data)
 
 #TODO: get path from engine
 class WeightVisualizer(AegisCallback):
