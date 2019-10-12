@@ -1,3 +1,4 @@
+#will be deprecated/removed in favor of rl_engine + callbacks in the future
 import numpy as np
 import tensorflow as tf
 

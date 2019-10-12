@@ -120,8 +120,18 @@ class TensorboardCallback(ValueCallback):
 
 class TensorboardActions(TensorboardCallback):
   def __init__(self, writer, env_name, interval=None, step_for_step=True):
-    super().__init__(writer, "action", interval=interval, prefix=env_name,
+    super().__init__(writer, "action", interval=interval, suffix=env_name,
       reduce="mean", step_for_step=step_for_step, summary_type="histogram")
+
+#TODO: get path from engine
+class TensorboardWeights(TensorboardCallback):
+  def __init__(self, writer, model_name, interval=None, step_for_step=True):
+    super().__init__(writer, "action", interval=interval, suffix=env_name,
+      reduce="mean", step_for_step=step_for_step, summary_type="histogram")
+
+  def do_callback(self, engine):
+    print("plotting weights to {}".format(self.path))
+    viz_weights(engine.model.get_weights(), self.path + ".png")
 
 class ValuePrinter(ValueCallback):
   def __init__(self, field, interval=None, reduce="sum", interval_name="Ep"):
