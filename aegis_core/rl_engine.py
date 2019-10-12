@@ -5,7 +5,7 @@ from ml_utils.viz import viz_weights
 
 from .engine import RequestEngine
 
-#TODO: convert into general "RLEngine" (requires removing references to .model)
+#TODO: convert into general "RLEngine" (requires removing references to agent.model)
 #TODO: move saving into callback (pget-specific save method? :) )
 
 class RLEngine(RequestEngine):
@@ -22,8 +22,8 @@ class RLEngine(RequestEngine):
 
     self.steps_since_save = 0
 
-    self.input_shape = tuple(self.model.input_shape[1:])
-    self.output_shape = tuple(self.model.output_shape[1:])
+    self.input_shape = tuple(self.agent.model.input_shape[1:])
+    self.output_shape = tuple(self.agent.model.output_shape[1:])
 
   def update(self, reward):
     transformed_reward = self.reward_transform(reward)
@@ -43,9 +43,9 @@ class RLEngine(RequestEngine):
     self.steps_since_save += 1
     if self.do_train and self.steps_since_save > self.save_interval:
       print("saving model to {}".format(self.save_path))
-      self.model.save(self.save_path)
+      self.agent.model.save(self.save_path)
       self.steps_since_save = 0
 
-      viz_weights(self.model.get_weights(), self.save_path + ".png")
+      viz_weights(self.agent.model.get_weights(), self.save_path + ".png")
 
     return output_state
