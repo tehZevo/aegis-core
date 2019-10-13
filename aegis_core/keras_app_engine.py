@@ -37,7 +37,7 @@ apps = {
 #inputs should be rgb images 0-255 i believe
 
 class KerasAppEngine(RequestEngine):
-  def __init__(self, app_name="mobilenet_v2", pooling="max", input_urls=[]
+  def __init__(self, app_name="mobilenet_v2", pooling="max", input_urls=[],
       resize_to=None):
     super().__init__(input_urls=input_urls)
 
