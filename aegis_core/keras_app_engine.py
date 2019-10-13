@@ -53,9 +53,10 @@ class KerasAppEngine(RequestEngine):
     #fix Nones
     input_states = [np.zeros(self.input_shape) if x is None else x for x in input_states]
     #preprocess inputs
-    input_states = [self.preprocess_input(x) for x in input_states]
-    #TODO: batch if all inputs are guaranteed to be the same dimensions?
-    output_states = [self.model(input_state) for input_state in input_states]
+    #TODO: inputs better be the same size ;)
+    input_states = np.array([self.preprocess_input(x) for x in input_states])
+    output_states = self.model(input_states)
+    #TODO: mean? maybe allow returning the batch?
     output_state = np.mean(output_states, axis=0)
 
     return output_state
