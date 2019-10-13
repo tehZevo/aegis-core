@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import cv2
 
 from .engine import RequestEngine
 
@@ -36,7 +37,8 @@ apps = {
 #inputs should be rgb images 0-255 i believe
 
 class KerasAppEngine(RequestEngine):
-  def __init__(self, app_name="mobilenet_v2", pooling="max", input_urls=[]):
+  def __init__(self, app_name="mobilenet_v2", pooling="max", input_urls=[]
+      resize_to=None):
     super().__init__(input_urls=input_urls)
 
     app, in_size, out_size, out_depth, preprocessor = apps[app_name]
@@ -44,6 +46,7 @@ class KerasAppEngine(RequestEngine):
       input_shape=None, pooling=pooling)
 
     self.preprocess_input = preprocessor
+    self.resize_to = resize_to
 
     self.input_shape = [in_size, in_size, 3]
     self.output_shape = [out_depth]
@@ -52,6 +55,9 @@ class KerasAppEngine(RequestEngine):
     input_states = self.get_inputs(0) #dont propagate reward
     #fix Nones
     input_states = [np.zeros(self.input_shape) if x is None else x for x in input_states]
+    if self.resize_to is not None:
+      #TODO: hardcoded interpolation method
+      input_states = [cv2.resize(x, dsize=self.resize_to, interpolation=cv2.INTER_LINEAR)]
     #cast
     input_states = [x.astype("float32") for x in input_states]
     #preprocess inputs

@@ -9,6 +9,7 @@ setup(name='aegis_core',
     'numpy',
     'flask',
     'flask_restful',
-    'requests'
+    'requests',
+    'opencv-python'
   ],
   packages=find_packages())
