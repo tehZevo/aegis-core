@@ -52,6 +52,8 @@ class KerasAppEngine(RequestEngine):
     input_states = self.get_inputs(0) #dont propagate reward
     #fix Nones
     input_states = [np.zeros(self.input_shape) if x is None else x for x in input_states]
+    #cast
+    input_states = [x.astype("float32") for x in input_states]
     #preprocess inputs
     #TODO: inputs better be the same size ;)
     input_states = np.array([self.preprocess_input(x) for x in input_states])
