@@ -118,6 +118,39 @@ class TensorboardCallback(ValueCallback):
         self.step += 1
       super().__call__(data)
 
+#TODO: for now, weights is a list, but make it a dict so we can name histograms
+class TensorboardPGETWeights(AegisCallback):
+  """ Requires TF eager to be enabled """
+  def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
+    super().__init__(field, interval=interval)
+    self.writer = writer
+    self.model_name = model_name
+    self.combine = combine
+    self.step_for_step = step_for_step
+    self.step = 0
+    #TODO: use model.trainable_variables instead of get_weights()?
+
+  def __call__(self, data):
+    with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+      if self.step_for_step:
+        self.step += 1
+      super().__call__(data)
+
+  def do_callback(self, data):
+    vars = data["agent"].model.get_weights()
+    if not combine:
+      for i, v in enumerate(weights)
+        name = self.model_name + "/weights/" + i
+        tf.contrib.summary.histogram(name, v, step=self.step)
+    else:
+      name = self.model_name + "/weights"
+      weights = [w.flatten() for w in weights]
+      values = numpy.concatenate(weights)
+      tf.contrib.summary.histogram(name, values, step=self.step)
+
+    if not self.step_for_step:
+      self.step += 1
+
 class TensorboardActions(TensorboardCallback):
   def __init__(self, writer, env_name, interval=None, step_for_step=True):
     super().__init__(writer, "action", interval=interval, suffix=env_name,
@@ -125,7 +158,7 @@ class TensorboardActions(TensorboardCallback):
 
 #TODO: get path from engine
 class TensorboardWeights(TensorboardCallback):
-  def __init__(self, writer, model_name, interval=None, step_for_step=True):
+  def __init__(self, writer, model_name, separate=True, interval=None, step_for_step=True):
     super().__init__(writer, "action", interval=interval, suffix=env_name,
       reduce="mean", step_for_step=step_for_step, summary_type="histogram")
 

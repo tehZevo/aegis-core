@@ -10,7 +10,7 @@ from .engine import RequestEngine
 
 class RLEngine(RequestEngine):
   def __init__(self, agent, save_path, input_urls=[], save_interval=1000, train=True,
-      reward_propagation=0, reward_transform=lambda x: x):
+      reward_propagation=0, reward_transform=lambda x: x, callbacks=[]):
     super().__init__(input_urls=input_urls)
 
     self.agent = agent
@@ -19,6 +19,7 @@ class RLEngine(RequestEngine):
     self.reward_propagation = reward_propagation
     self.save_interval = save_interval
     self.save_path = save_path
+    self.callbacks = callbacks
 
     self.steps_since_save = 0
 
@@ -40,6 +41,13 @@ class RLEngine(RequestEngine):
     input_state = np.mean(input_states, axis=0) #TODO: this will fail for discrete where a state is missing (set to 0s...) actually maybe not
     output_state = self.agent.get_action(input_state)
 
+    cb_values = {}
+    cb_values["agent"] = self.agent
+
+    for cb in self.callbacks:
+      cb(cb_values)
+
+    #TODO: move to callbacks
     self.steps_since_save += 1
     if self.do_train and self.steps_since_save > self.save_interval:
       print("saving model to {}".format(self.save_path))
