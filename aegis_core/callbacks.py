@@ -137,7 +137,7 @@ class TensorboardPGETWeights(AegisCallback):
       super().__call__(data)
 
   def do_callback(self, data):
-    vars = data["agent"].model.get_weights()
+    weights = data["agent"].model.get_weights()
     if not self.combine:
       for i, v in enumerate(weights):
         name = self.model_name + "/weights/" + i
