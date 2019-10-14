@@ -140,7 +140,7 @@ class TensorboardPGETWeights(AegisCallback):
     weights = data["agent"].model.get_weights()
     if not self.combine:
       for i, v in enumerate(weights):
-        name = self.model_name + "/weights/" + i
+        name = "{}/weights/{}".format(self.model_name, i)
         tf.contrib.summary.histogram(name, v, step=self.step)
     else:
       name = self.model_name + "/weights"
