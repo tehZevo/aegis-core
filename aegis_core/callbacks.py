@@ -151,20 +151,43 @@ class TensorboardPGETWeights(AegisCallback):
     if not self.step_for_step:
       self.step += 1
 
+#TODO: DRY
+class TensorboardPGETTraces(AegisCallback):
+  """ Requires TF eager to be enabled """
+  def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
+    super().__init__(interval=interval)
+    self.writer = writer
+    self.model_name = model_name
+    self.combine = combine
+    self.step_for_step = step_for_step
+    self.step = 0
+    #TODO: use model.trainable_variables instead of get_weights()?
+
+  def __call__(self, data):
+    with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
+      if self.step_for_step:
+        self.step += 1
+      super().__call__(data)
+
+  def do_callback(self, data):
+    traces = data["agent"].traces
+    if not self.combine:
+      for i, v in enumerate(traces):
+        name = "{}/traces/{}".format(self.model_name, i)
+        tf.contrib.summary.histogram(name, v, step=self.step)
+    else:
+      name = self.model_name + "/traces"
+      traces = [w.flatten() for w in traces]
+      values = numpy.concatenate(traces)
+      tf.contrib.summary.histogram(name, values, step=self.step)
+
+    if not self.step_for_step:
+      self.step += 1
+
 class TensorboardActions(TensorboardCallback):
   def __init__(self, writer, env_name, interval=None, step_for_step=True):
     super().__init__(writer, "action", interval=interval, suffix=env_name,
       reduce="mean", step_for_step=step_for_step, summary_type="histogram")
-
-#TODO: get path from engine
-class TensorboardWeights(TensorboardCallback):
-  def __init__(self, writer, model_name, separate=True, interval=None, step_for_step=True):
-    super().__init__(writer, "action", interval=interval, suffix=env_name,
-      reduce="mean", step_for_step=step_for_step, summary_type="histogram")
-
-  def do_callback(self, engine):
-    print("plotting weights to {}".format(self.path))
-    viz_weights(engine.model.get_weights(), self.path + ".png")
 
 class ValuePrinter(ValueCallback):
   def __init__(self, field, interval=None, reduce="sum", interval_name="Ep"):
