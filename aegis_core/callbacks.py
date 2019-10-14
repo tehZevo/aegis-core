@@ -122,7 +122,7 @@ class TensorboardCallback(ValueCallback):
 class TensorboardPGETWeights(AegisCallback):
   """ Requires TF eager to be enabled """
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
-    super().__init__(field, interval=interval)
+    super().__init__(interval=interval)
     self.writer = writer
     self.model_name = model_name
     self.combine = combine
