@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from ml_utils.viz import viz_weights
-from .engine import Engine, request_input, sanitize
+from .engine import RequestEngine, Engine, request_input, sanitize
 
 class CuriosityEngine(Engine):
   """
