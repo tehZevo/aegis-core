@@ -85,7 +85,7 @@ class LocalCuriosityEngine(RequestEngine):
     train_loss = 0
 
     #train
-    if train:
+    if self.train:
       batch = random.sample(self.buffer, self.batch_size)
       x = np.array(batch)
       train_loss = self.model.train_on_batch(x, x)
