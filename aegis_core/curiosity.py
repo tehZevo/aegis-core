@@ -72,6 +72,7 @@ class LocalCuriosityEngine(RequestEngine):
     #TODO: assumes the model has no metrics, only loss
     x = np.array(inputs)
     surprise = self.model.test_on_batch(x, x)
+    surprise = float(surprise)
     #reward action node/proxy with surprise
     request_input(self.action_url, surprise)
 
@@ -91,9 +92,9 @@ class LocalCuriosityEngine(RequestEngine):
       train_loss = self.model.train_on_batch(x, x)
 
     cb_values = {}
-    cb["surprise"] = surprise
-    cb["loss"] = train_loss
-    cb["engine"] = self
+    cb_values["surprise"] = surprise
+    cb_values["loss"] = train_loss
+    cb_values["engine"] = self
 
     for cb in self.callbacks:
       cb(cb_values)
