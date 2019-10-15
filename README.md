@@ -33,8 +33,6 @@ Currently, the protocol is implemented using a single HTTP POST request.
 
 * multiple input/output channels per node (mostly for VAE and pretrained SL models)
 
-* static pretrained SL model engine (eg image classifier)
-
 * monitoring / command API
   * connect to one node, it finds upstream connections?
     * how to handle downstream connections

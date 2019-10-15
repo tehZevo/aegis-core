@@ -17,55 +17,75 @@ def env_callbacks(summary_writer, interval=1000):
 
 class AegisCallback():
   def __init__(self, interval):
+    """If a string interval is provided, the callback will wait until
+    data[interval] is truthy.
+    """
     self.interval = interval
+    self.steps_since_call = 0
     self.step_counter = 0
     self.call_counter = 0
 
-  def do_callbacqk(self, data):
+  def do_callback(self, data):
     pass
 
   def __call__(self, data):
     self.step_counter += 1
-    if self.interval is None or self.step_counter >= self.interval:
-      self.step_counter = 0
+    self.steps_since_call += 1
+    interval_is_str = type(self.interval) is str
+    if ((interval_is_str and data[self.interval]) or
+        (not interval_is_str and self.steps_since_call >= self.interval)):
+      self.steps_since_call = 0
       self.call_counter += 1
       self.do_callback(data)
 
 class ValueCallback(AegisCallback):
-  def __init__(self, field, interval=None, reduce="sum"):
-    """Reduce can be either "mean", "sum", or None, in which case, all values
-    are used. If a string interval is provided, the callback will wait
-    until data[interval] is truthy.
+  def __init__(self, interval=None, reduce="sum"):
+    """Reduce can be either "mean", "sum", "last"
+    mean/sum: performs respective reduce op.
+    last: returns only the last value.
+    None: performs no reduce op, returns all values.
     """
     super().__init__(interval=interval)
-    self.field = field
     self.reduce_method = reduce
     self.values = []
 
-  def do_callback(self, value):
+  def get_value(self, data):
     pass
 
-  def __call__(self, data):
-    self.values.append(data[self.field])
-    self.step_counter += 1
-    interval_is_str = type(self.interval) is str
-    if ((interval_is_str and data[self.interval]) or
-        (not interval_is_str and self.step_counter >= self.interval)):
-      self.step_counter = 0
-      self.call_counter += 1
-      #reduce
-      if self.reduce_method == "mean":
-        self.value = np.mean(self.values, axis=0)
-      elif self.reduce_method == "sum":
-        self.value = np.sum(self.values, axis=0)
-      else:
-        self.value = np.array(self.values)
+  def do_value_callback(self, value):
+    pass
 
-      self.values = []
-      self.do_callback(self.value)
+  def do_callback(self, data):
+    #reduce
+    if self.reduce_method == "mean":
+      value = np.mean(self.values, axis=0)
+    elif self.reduce_method == "sum":
+      value = np.sum(self.values, axis=0)
+    #only call get_value on last
+    elif self.reduce_method == "last":
+      value = self.get_value(data)
+    else:
+      value = self.values
+
+    self.values = []
+
+    self.do_value_callback(self, value)
+
+  def __call__(self, data):
+    if self.reduce != "last":
+      self.values.append(self.get_value(data))
+    super().__call__(data)
+
+class FieldCallback(ValueCallback):
+  def __init__(self, field, interval=None, reduce="sum"):
+    super().__init__(interval=interval, reduce=reduce)
+    self.field = field
+
+  def get_value(self, data):
+    return data[self.field]
 
 #TODO: max length?
-class GraphCallback(ValueCallback):
+class GraphCallback(FieldCallback):
   def __init__(self, field, interval=None, title=None, reduce="mean",
       smoothing=0.1, draw_raw=True, quantile=0):
     super().__init__(field, interval=interval, reduce=reduce)
@@ -75,7 +95,7 @@ class GraphCallback(ValueCallback):
     self.title = field if title is None else title
     self.quantile = quantile
 
-  def do_callback(self, value):
+  def do_value_callback(self, value):
     self.graph_values.append(value)
     #TODO: separate title/path?
     save_plot(self.graph_values, self.title, self.smoothing,
@@ -83,15 +103,15 @@ class GraphCallback(ValueCallback):
 
 #TODO: histogram per action?
 class TensorboardCallback(ValueCallback):
-  """ Requires TF eager to be enabled """
-  def __init__(self, writer, field, interval=None, prefix=None, suffix=None,
+  """Requires TF eager to be enabled
+  step_for_step=False is useful for per-episode stats (alongside interval="done")
+  """
+  def __init__(self, writer, name, interval=None
        summary_type="scalar", reduce="sum", step_for_step=True):
-    super().__init__(field, interval=interval, reduce=reduce)
+    super().__init__(interval=interval, reduce=reduce)
     self.writer = writer
-    self.step = 0
-    self.prefix = prefix
-    self.suffix = suffix
     self.step_for_step = step_for_step
+    self.name = name
 
     #TODO: support other types
     s = tf.contrib.summary
@@ -100,93 +120,83 @@ class TensorboardCallback(ValueCallback):
       else s.histogram if stype == "histogram"
       else s.text)
 
-  def do_callback(self, value):
-    name = ""
-    if self.prefix is not None:
-      name += self.prefix + " "
-    name += self.field
-    if self.suffix is not None:
-      name += "/" + self.suffix
-    self.summary_type(name, value, step=self.step)
+  def get_summary_value(self, value):
+    return value
 
-    if not self.step_for_step:
-      self.step += 1
+  def do_value_callback(self, value):
+    value = self.get_summary_value(value)
 
-  def __call__(self, data):
+    step = self.step_counter if self.step_for_step else self.call_counter
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-      if self.step_for_step:
-        self.step += 1
-      super().__call__(data)
+      if isinstance(value, dict):
+        for k, v in value.items():
+          self.summary_type(self.name + "/{}".format(k), v, step=self.step)
+      elif isinstance(value, list):
+        for i, v in enumerate(value):
+          self.summary_type(self.name + "/{}".format(i), v, step=self.step)
+      else:
+        self.summary_type(self.name, v, step=self.step)
+
+#TODO: dont require {} to be present in format str?
+class TensorboardFieldCallback(TensorboardCallback):
+  def __init__(self, writer, field, interval=None, name_format="{}",
+       summary_type="scalar", reduce="sum", step_for_step=True):
+    super().__init__(writer, name_format.format(self.field), interval=interval,
+         summary_type=summary_type, reduce=reduce, step_for_step=step_for_step)
+
+    self.field = field
+
+  def get_value(self, data):
+    return data[self.field]
 
 #TODO: for now, weights is a list, but make it a dict so we can name histograms
-class TensorboardPGETWeights(AegisCallback):
-  """ Requires TF eager to be enabled """
+class TensorboardPGETWeights(TensorboardCallback):
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
-    super().__init__(interval=interval)
-    self.writer = writer
+    super().__init__(writer, "{}/weights".format(model_name), interval=interval, summary_type="histogram",
+      reduce="last", step_for_step=True)
+
     self.model_name = model_name
     self.combine = combine
-    self.step_for_step = step_for_step
-    self.step = 0
+
     #TODO: use model.trainable_variables instead of get_weights()?
 
-  def __call__(self, data):
-    with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-      if self.step_for_step:
-        self.step += 1
-      super().__call__(data)
+  def get_value(self, data):
+    return data["agent"].model.get_weights()
 
-  def do_callback(self, data):
-    weights = data["agent"].model.get_weights()
+  def get_summary_value(self, weights):
+    #graph each separately (list of weights)
     if not self.combine:
-      for i, v in enumerate(weights):
-        name = "{}/weights/{}".format(self.model_name, i)
-        tf.contrib.summary.histogram(name, v, step=self.step)
+      return weights
+    #combine into one array
     else:
-      name = self.model_name + "/weights"
       weights = [w.flatten() for w in weights]
-      values = numpy.concatenate(weights)
-      tf.contrib.summary.histogram(name, values, step=self.step)
-
-    if not self.step_for_step:
-      self.step += 1
+      return numpy.concatenate(weights)
 
 #TODO: DRY
-class TensorboardPGETTraces(AegisCallback):
-  """ Requires TF eager to be enabled """
+class TensorboardPGETTraces(TensorboardCallback):
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
-    super().__init__(interval=interval)
-    self.writer = writer
+    super().__init__(writer, "{}/traces".format(model_name), interval=interval, summary_type="histogram",
+      reduce="last", step_for_step=True)
+
     self.model_name = model_name
     self.combine = combine
-    self.step_for_step = step_for_step
-    self.step = 0
-    #TODO: use model.trainable_variables instead of get_weights()?
 
-  def __call__(self, data):
-    with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
-      if self.step_for_step:
-        self.step += 1
-      super().__call__(data)
+  def get_value(self, data):
+    return data["agent"].traces
 
-  def do_callback(self, data):
-    traces = data["agent"].traces
+  def get_summary_value(self, traces):
+    #graph each separately (list of weights)
     if not self.combine:
-      for i, v in enumerate(traces):
-        name = "{}/traces/{}".format(self.model_name, i)
-        tf.contrib.summary.histogram(name, v, step=self.step)
+      return traces
+    #combine into one array
     else:
-      name = self.model_name + "/traces"
       traces = [w.flatten() for w in traces]
-      values = numpy.concatenate(traces)
-      tf.contrib.summary.histogram(name, values, step=self.step)
+      return numpy.concatenate(traces)
 
-    if not self.step_for_step:
-      self.step += 1
-
+#TODO below
 class TensorboardActions(TensorboardCallback):
   def __init__(self, writer, env_name, interval=None, step_for_step=True):
-    super().__init__(writer, "action", interval=interval, suffix=env_name,
+    super().__init__(writer, "action", interval=interval, name_format="{}/" + env_name,
       reduce="mean", step_for_step=step_for_step, summary_type="histogram")
 
 class ValuePrinter(ValueCallback):
