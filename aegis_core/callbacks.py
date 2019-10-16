@@ -69,10 +69,10 @@ class ValueCallback(AegisCallback):
 
     self.values = []
 
-    self.do_value_callback(self, value)
+    self.do_value_callback(value)
 
   def __call__(self, data):
-    if self.reduce != "last":
+    if self.reduce_method != "last":
       self.values.append(self.get_value(data))
     super().__call__(data)
 
@@ -86,6 +86,7 @@ class FieldCallback(ValueCallback):
 
 #TODO: max length?
 class GraphCallback(FieldCallback):
+  """Saves accumulating matplotlib graphs of stuff"""
   def __init__(self, field, interval=None, title=None, reduce="mean",
       smoothing=0.1, draw_raw=True, quantile=0):
     super().__init__(field, interval=interval, reduce=reduce)
@@ -106,7 +107,7 @@ class TensorboardCallback(ValueCallback):
   """Requires TF eager to be enabled
   step_for_step=False is useful for per-episode stats (alongside interval="done")
   """
-  def __init__(self, writer, name, interval=None
+  def __init__(self, writer, name, interval=None,
        summary_type="scalar", reduce="sum", step_for_step=True):
     super().__init__(interval=interval, reduce=reduce)
     self.writer = writer
@@ -130,18 +131,19 @@ class TensorboardCallback(ValueCallback):
     with self.writer.as_default(), tf.contrib.summary.always_record_summaries():
       if isinstance(value, dict):
         for k, v in value.items():
-          self.summary_type(self.name + "/{}".format(k), v, step=self.step)
+          self.summary_type(self.name + "/{}".format(k), v, step=step)
       elif isinstance(value, list):
         for i, v in enumerate(value):
-          self.summary_type(self.name + "/{}".format(i), v, step=self.step)
+          self.summary_type(self.name + "/{}".format(i), v, step=step)
       else:
-        self.summary_type(self.name, v, step=self.step)
+        self.summary_type(self.name, value, step=step)
 
 #TODO: dont require {} to be present in format str?
 class TensorboardFieldCallback(TensorboardCallback):
+  """Logs a single field from the callback data"""
   def __init__(self, writer, field, interval=None, name_format="{}",
        summary_type="scalar", reduce="sum", step_for_step=True):
-    super().__init__(writer, name_format.format(self.field), interval=interval,
+    super().__init__(writer, name_format.format(field), interval=interval,
          summary_type=summary_type, reduce=reduce, step_for_step=step_for_step)
 
     self.field = field
@@ -151,11 +153,10 @@ class TensorboardFieldCallback(TensorboardCallback):
 
 #TODO: for now, weights is a list, but make it a dict so we can name histograms
 class TensorboardPGETWeights(TensorboardCallback):
+  """Logs PGET weights as histograms"""
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
-    super().__init__(writer, "{}/weights".format(model_name), interval=interval, summary_type="histogram",
-      reduce="last", step_for_step=True)
-
-    self.model_name = model_name
+    super().__init__(writer, "{}/weights".format(model_name), interval=interval,
+      summary_type="histogram", reduce="last", step_for_step=True)
     self.combine = combine
 
     #TODO: use model.trainable_variables instead of get_weights()?
@@ -174,11 +175,10 @@ class TensorboardPGETWeights(TensorboardCallback):
 
 #TODO: DRY
 class TensorboardPGETTraces(TensorboardCallback):
+  """Logs PGET traces as histograms"""
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
-    super().__init__(writer, "{}/traces".format(model_name), interval=interval, summary_type="histogram",
-      reduce="last", step_for_step=True)
-
-    self.model_name = model_name
+    super().__init__(writer, "{}/traces".format(model_name), interval=interval,
+    summary_type="histogram", reduce="last", step_for_step=True)
     self.combine = combine
 
   def get_value(self, data):
@@ -193,8 +193,22 @@ class TensorboardPGETTraces(TensorboardCallback):
       traces = [w.flatten() for w in traces]
       return numpy.concatenate(traces)
 
+class TensorboardPGETReward(TensorboardCallback):
+  """Logs reward mean/deviation and advantage as scalars"""
+  def __init__(self, writer, model_name, interval=None, step_for_step=True):
+    super().__init__(writer, "{}/reward".format(model_name), interval=interval,
+    summary_type="scalar", reduce="last", step_for_step=True)
+
+  def get_value(self, data):
+    agent = data["agent"]
+    return {
+      "mean": agent.reward_mean,
+      "deviation": agent.reward_deviation,
+      "advantage": agent.last_advantage
+    }
+
 #TODO below
-class TensorboardActions(TensorboardCallback):
+class TensorboardActions(TensorboardFieldCallback):
   def __init__(self, writer, env_name, interval=None, step_for_step=True):
     super().__init__(writer, "action", interval=interval, name_format="{}/" + env_name,
       reduce="mean", step_for_step=step_for_step, summary_type="histogram")
