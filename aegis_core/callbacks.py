@@ -173,13 +173,20 @@ class TensorboardPGETWeights(TensorboardCallback):
       weights = [w.flatten() for w in weights]
       return numpy.concatenate(weights)
 
+#TODO: move to ml-utils?
+def remove_outliers(data, z=2):
+  data = data.flatten()
+  return data[abs(data - np.mean(data)) < z * np.std(data)]
+
 #TODO: DRY
 class TensorboardPGETTraces(TensorboardCallback):
   """Logs PGET traces as histograms"""
   def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
     super().__init__(writer, "{}/traces".format(model_name), interval=interval,
-    summary_type="histogram", reduce="last", step_for_step=True)
+    summary_type="histogram", reduce="last", step_for_step=True, outlier_z=2)
+    #TODO: move quantile to tensorboardcallback histogram mode
     self.combine = combine
+    self.outlier_z = outlier_z
 
   def get_value(self, data):
     return data["agent"].traces
@@ -187,11 +194,11 @@ class TensorboardPGETTraces(TensorboardCallback):
   def get_summary_value(self, traces):
     #graph each separately (list of weights)
     if not self.combine:
-      return traces
+      return remove_outliers(traces, self.outlier_z)
     #combine into one array
     else:
       traces = [w.flatten() for w in traces]
-      return numpy.concatenate(traces)
+      return remove_outliers(numpy.concatenate(traces), self.outlier_z)
 
 class TensorboardPGETReward(TensorboardCallback):
   """Logs reward mean/deviation and advantage as scalars"""
