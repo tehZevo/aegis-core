@@ -181,9 +181,10 @@ def remove_outliers(data, z=2):
 #TODO: DRY
 class TensorboardPGETTraces(TensorboardCallback):
   """Logs PGET traces as histograms"""
-  def __init__(self, writer, model_name, interval=None, combine=False, step_for_step=True):
+  def __init__(self, writer, model_name, interval=None, combine=False,
+      step_for_step=True, outlier_z=2):
     super().__init__(writer, "{}/traces".format(model_name), interval=interval,
-    summary_type="histogram", reduce="last", step_for_step=True, outlier_z=2)
+    summary_type="histogram", reduce="last", step_for_step=True)
     #TODO: move quantile to tensorboardcallback histogram mode
     self.combine = combine
     self.outlier_z = outlier_z
