@@ -175,6 +175,7 @@ class TensorboardPGETWeights(TensorboardCallback):
 
 #TODO: move to ml-utils?
 def remove_outliers(data, z=2):
+  data = np.array(data)
   data = data.flatten()
   return data[abs(data - np.mean(data)) < z * np.std(data)]
 
@@ -195,7 +196,7 @@ class TensorboardPGETTraces(TensorboardCallback):
   def get_summary_value(self, traces):
     #graph each separately (list of weights)
     if not self.combine:
-      return remove_outliers(traces, self.outlier_z)
+      return [remove_outliers(t, self.outlier_z) for t in traces]
     #combine into one array
     else:
       traces = [w.flatten() for w in traces]
