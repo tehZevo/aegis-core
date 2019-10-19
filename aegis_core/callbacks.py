@@ -175,7 +175,7 @@ class TensorboardPGETWeights(TensorboardCallback):
 
 #TODO: move to ml-utils?
 def remove_outliers(data, z=2):
-  data = np.array(data)
+  data = data.numpy() #np.array(data)
   data = data.flatten()
   return data[abs(data - np.mean(data)) < z * np.std(data)]
 
