@@ -3,18 +3,6 @@ import numpy as np
 
 from ml_utils.viz import save_plot, viz_weights
 
-#some common callbacks for env nodes
-#TODO
-def env_callbacks(summary_writer, interval=1000):
-  cbs = []
-  cbs.append(
-    TensorboardCallback(summary_writer, "reward", suffix=args.environment,
-      reduce="sum", interval=interval, step_for_step=False)
-  )
-  cbs.append(ValuePrinter("reward", interval=interval , reduce="sum"))
-
-  return cbs
-
 class AegisCallback():
   def __init__(self, interval):
     """If a string interval is provided, the callback will wait until
@@ -37,6 +25,11 @@ class AegisCallback():
       self.steps_since_call = 0
       self.call_counter += 1
       self.do_callback(data)
+
+class LambdaCallback(AegisCallback):
+  def __init__(self, interval, lam):
+    super().__init__(interval)
+    self.lam = lam
 
 class ValueCallback(AegisCallback):
   def __init__(self, interval=None, reduce="sum"):
@@ -175,7 +168,10 @@ class TensorboardPGETWeights(TensorboardCallback):
 
 #TODO: move to ml-utils?
 def remove_outliers(data, z=2):
-  data = data.numpy() #np.array(data)
+  try:
+    data = data.numpy()
+  except:
+    data = np.array(data)
   data = data.flatten()
   return data[abs(data - np.mean(data)) < z * np.std(data)]
 
