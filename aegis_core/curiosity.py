@@ -48,7 +48,7 @@ class CuriosityEngine(Engine):
 # need to update mlutils model builder to optionally include optimizer
 class LocalCuriosityEngine(RequestEngine):
   def __init__(self, model, action_url, input_urls=[], train=True,
-      buffer_size=10000, batch_size=32, callbacks=[]):
+      buffer_size=10000, batch_size=32, callbacks=[], subtract_train_loss=False):
     """Model should be compiled first"""
     super().__init__(input_urls=input_urls)
     self.model = model
@@ -58,6 +58,8 @@ class LocalCuriosityEngine(RequestEngine):
     self.buffer_size = buffer_size
     self.batch_size = batch_size
     self.callbacks = callbacks
+    self.subtract_train_loss = subtract_train_loss
+    self.last_train_loss = None
 
     #extract io shapes from model
     self.input_shape = self.model.input_shape[1:]
@@ -73,6 +75,10 @@ class LocalCuriosityEngine(RequestEngine):
     x = np.array(inputs)
     surprise = self.model.test_on_batch(x, x)
     surprise = float(surprise)
+    #use previous training loss as a baseline of sorts
+    if self.subtract_train_loss:
+      surprise = (surprise - self.last_train_loss
+        if self.last_train_loss is not None else 0)
     #reward action node/proxy with surprise
     request_input(self.action_url, surprise)
 
@@ -90,6 +96,8 @@ class LocalCuriosityEngine(RequestEngine):
       batch = random.choices(self.buffer, k=self.batch_size)
       x = np.array(batch)
       train_loss = self.model.train_on_batch(x, x)
+
+    self.last_train_loss = train_loss
 
     cb_values = {}
     cb_values["surprise"] = surprise
