@@ -226,25 +226,12 @@ class ValuePrinter(ValueCallback):
   def do_callback(self, value):
     print("{} {}: {}".format(self.interval_name, self.call_counter, value))
 
-#TODO: get path from engine
-class WeightVisualizer(AegisCallback):
-  def __init__(self, path, interval=None):
-    super().__init__(interval)
-    self.path = path
-
-  def do_callback(self, engine):
-    print("plotting weights to {}".format(self.path))
-    viz_weights(engine.model.get_weights(), self.path + ".png")
-
-#TODO: get path from engine
 class ModelSaver(AegisCallback):
-  def __init__(self, path, interval=None):
+  def __init__(self, path, model, interval=1000):
     super().__init__(interval)
     self.path = path
+    self.model = model
 
-  def __call__(self):
-    self.steps_since_save += 1
-    if self.steps_since_save > self.save_interval:
-      print("saving model to {}".format(self.path))
-      self.model.save(self.path)
-      self.steps_since_save = 0
+  def do_callback(self, data):
+    print("saving model to {}".format(self.path))
+    self.model.save(self.path)

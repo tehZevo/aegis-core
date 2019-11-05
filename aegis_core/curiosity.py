@@ -44,6 +44,7 @@ class CuriosityEngine(Engine):
 # what types of noise to use for denoising AE?
 
 #TODO: saving callback?
+#TODO: callback for visualizing latent space?
 #TODO: internal buffer + training steps.. optimizer etc
 # need to update mlutils model builder to optionally include optimizer
 class LocalCuriosityEngine(RequestEngine):
