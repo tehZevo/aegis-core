@@ -227,11 +227,11 @@ class ValuePrinter(ValueCallback):
     print("{} {}: {}".format(self.interval_name, self.call_counter, value))
 
 class ModelSaver(AegisCallback):
-  def __init__(self, path, model, interval=1000):
+  def __init__(self, model, path, interval=1000):
     super().__init__(interval)
-    self.path = path
     self.model = model
+    self.path = path
 
   def do_callback(self, data):
-    print("saving model to {}".format(self.path))
+    print("Saving model to {}".format(self.path))
     self.model.save(self.path)
