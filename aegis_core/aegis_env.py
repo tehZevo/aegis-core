@@ -21,7 +21,7 @@ from .engine import RequestEngine
 #not a "controller", but needs `state` and `reward` variables
 #TODO: reward propagation...?
 class AegisEnv(gym.Env):
-  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False, sleep=0.1, port=8181):
+  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False, sleep=0.1, port=8181, n_steps=None):
     self.input_shape = obs_shape
     self.output_shape = action_shape
     self.sleep = sleep
@@ -31,6 +31,8 @@ class AegisEnv(gym.Env):
     self.observation_space = spaces.Box(shape=[obs_shape], low=-np.Inf, high=np.Inf)
     self.action_space = spaces.Discrete(action_shape) if discrete else spaces.Box(shape=[action_shape], low=-np.Inf, high=np.Inf)
     self.discrete = discrete
+    self.n_steps = n_steps
+    self.step_count = 0
     #despite it being named "state", this is actually the output (ie action)
     #of the agent, to be passed to whichever agents request it down the line
     #do NOT return this from reset/step
@@ -54,7 +56,10 @@ class AegisEnv(gym.Env):
     self.reward = 0
     obs = self.get_observation(r);
 
-    return obs, r, False, {}
+    self.step_count += 1
+    done = self.n_steps != None and (self.step_count >= self.n_steps)
+
+    return obs, r, done, {}
 
   def get_observation(self, reward):
     #TODO: reward propagation scheme?
@@ -64,6 +69,7 @@ class AegisEnv(gym.Env):
     return np.mean(inputs, axis=0)
 
   def reset(self):
+    self.step_count = 0
     return self.get_observation(0)
 
   #jacked from aegis -> flask_controller.py
