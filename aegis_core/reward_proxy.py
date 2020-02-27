@@ -49,9 +49,9 @@ class RewardProxy(RequestEngine):
     self.epsilon = 1e-7
 
     #allow decay_rates clips, and scales to be single numbers or lists TODO: check len(decay_rates)==len(self.channels)
-    self.decay_rates = {k: decay_rates for k in self.channels} if isinstance(decay_rates, numbers.Number) else decay_rates
-    self.clips = {k: clips for k in self.channels} if isinstance(clips, numbers.Number) else clips
-    self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else scales
+    self.decay_rates = {k: decay_rates for k in self.channels} if isinstance(decay_rates, numbers.Number) else dict(zip(self.channels, decay_rates))
+    self.clips = {k: clips for k in self.channels} if isinstance(clips, numbers.Number) else dict(zip(self.channels, clips))
+    self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else dict(zip(self.channels, scales))
 
     #convert half life to decay rate
     self.decay_rates = {k: ln(2) / x if x > 1 else x for k, x in self.decay_rates.items()}
