@@ -54,7 +54,7 @@ class RewardProxy(RequestEngine):
     self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else scales
 
     #convert half life to decay rate
-    self.decay_rates = {k: ln(2) / x if x > 1 else x for k, x in self.decay_rates}
+    self.decay_rates = {k: ln(2) / x if x > 1 else x for k, x in self.decay_rates.items()}
 
     self.start_server(port)
 
