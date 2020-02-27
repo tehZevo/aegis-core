@@ -54,6 +54,7 @@ class AegisEnv(gym.Env):
     time.sleep(self.sleep) #TODO: move sleep? idk
     r = self.reward
     self.reward = 0
+    #TODO: option to disable reward propagation
     obs = self.get_observation(r);
 
     self.step_count += 1

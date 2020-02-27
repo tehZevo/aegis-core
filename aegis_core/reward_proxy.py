@@ -31,12 +31,30 @@ class RewardResource(Resource):
 
     return data
 
+import numbers
+
+#TODO: expose means/deviations for inspection via http or something
+#TODO: saving/loading of channels mean/deviation and other parameters?
+#TODO: live adjustment of decay rate, scale, clip?
 class RewardProxy(RequestEngine):
-  def __init__(self, node_urls=[], channels=None, niceness=1, port=8181, autostart=True):
+  def __init__(self, node_urls=[], channels=None, decay_rates=1e-3, clips=3, scales=1, niceness=1, port=8181, autostart=True):
     super().__init__(input_urls=node_urls)
     self.channels = [""] if channels is None else channels
-    self.rewards = defaultdict(float)
+    self.rewards = {k: 0 for k in self.channels}
+    self.means = {k: 0 for k in self.channels}
+    self.deviations = {k: 1 for k in self.channels}
     self.niceness = niceness
+
+    #TODO: hardcoded
+    self.epsilon = 1e-7
+
+    #allow decay_rates clips, and scales to be single numbers or lists TODO: check len(decay_rates)==len(self.channels)
+    self.decay_rates = {k: decay_rates for k in self.channels} if isinstance(decay_rates, numbers.Number) else decay_rates
+    self.clips = {k: clips for k in self.channels} if isinstance(clips, numbers.Number) else clips
+    self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else scales
+
+    #convert half life to decay rate
+    self.decay_rates = {k: ln(2) / x if x > 1 else x for k, x in self.decay_rates}
 
     self.start_server(port)
 
@@ -55,15 +73,29 @@ class RewardProxy(RequestEngine):
         time.sleep(-self.niceness)
 
   def update(self):
-    #for now, just accumulate
-    reward = 0
-    #TODO: moving average + scaling
+    sum_reward = 0
+    #for each reward
     for name, r in self.rewards.items():
-      reward += r
+      mean = self.means[name]
+      deviation = self.deviations[name]
+      decay_rate = self.decay_rates[name]
+      clip = self.clips[name]
+      #apply normalization
+      d_reward = r - mean
+      normalized_reward = d_reward / (deviation + self.epsilon)
+      #update mean/deviation
+      self.means[name] += d_reward * decay_rate
+      self.deviations[name] += (deviation - abs(d_reward)) * decay_rate
+      #clip and scale reward
+      if clip is not None:
+        normalized_reward = np.clip(normalized_reward, -clip, clip)
+      normalized_reward *= self.scales[name]
+
+      sum_reward += normalized_reward
       self.rewards[name] = 0
 
     #distribute reward, discard tensors.. who needs them anyway?
-    self.get_inputs(reward);
+    self.get_inputs(sum_reward)
 
   #TODO: clean duped code from flask controller...
   def start_server(self, port):
