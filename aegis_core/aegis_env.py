@@ -19,9 +19,9 @@ from .engine import RequestEngine
 #env gets action from agent, state comes from request or whatever..
 
 #not a "controller", but needs `state` and `reward` variables
-#TODO: reward propagation...?
 class AegisEnv(gym.Env):
-  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False, sleep=0.1, port=8181, n_steps=None):
+  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False,
+      sleep=0.1, port=8181, n_steps=None, reward_propagation=0):
     self.input_shape = obs_shape
     self.output_shape = action_shape
     self.sleep = sleep
@@ -33,6 +33,7 @@ class AegisEnv(gym.Env):
     self.discrete = discrete
     self.n_steps = n_steps
     self.step_count = 0
+    self.reward_propagation = reward_propagation
     #despite it being named "state", this is actually the output (ie action)
     #of the agent, to be passed to whichever agents request it down the line
     #do NOT return this from reset/step
@@ -54,8 +55,7 @@ class AegisEnv(gym.Env):
     time.sleep(self.sleep) #TODO: move sleep? idk
     r = self.reward
     self.reward = 0
-    #TODO: option to disable reward propagation
-    obs = self.get_observation(r);
+    obs = self.get_observation(r * self.reward_propagation);
 
     self.step_count += 1
     done = self.n_steps != None and (self.step_count >= self.n_steps)
