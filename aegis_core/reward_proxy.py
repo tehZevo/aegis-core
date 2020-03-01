@@ -84,7 +84,6 @@ class RewardProxy(RequestEngine):
       d_reward = r - mean
       normalized_reward = d_reward / (deviation + self.epsilon)
       #update mean/deviation
-      a += (b - a) * t
       self.means[name] += d_reward * decay_rate
       self.deviations[name] += (abs(d_reward) - deviation) * decay_rate
       #clip and scale reward
