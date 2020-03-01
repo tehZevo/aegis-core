@@ -39,7 +39,7 @@ import numbers
 class RewardProxy(RequestEngine):
   def __init__(self, node_urls=[], channels=None, decay_rates=1e-3, clips=3, scales=1, niceness=1, port=8181, autostart=True):
     super().__init__(input_urls=node_urls)
-    self.channels = [""] if channels is None else channels
+    self.channels = [""] if (channels is None) or (len(channels) == 0) else channels
     self.rewards = {k: 0 for k in self.channels}
     self.means = {k: 0 for k in self.channels}
     self.deviations = {k: 1 for k in self.channels}
