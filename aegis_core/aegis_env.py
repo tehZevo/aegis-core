@@ -21,10 +21,10 @@ from .engine import RequestEngine
 #not a "controller", but needs `state` and `reward` variables
 class AegisEnv(gym.Env):
   def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False,
-      sleep=0.1, port=8181, n_steps=None, reward_propagation=0):
+      niceness=0.1, port=8181, n_steps=None, reward_propagation=0):
     self.input_shape = obs_shape
     self.output_shape = action_shape
-    self.sleep = sleep
+    self.niceness = niceness
     #TODO: remove dummy (requires controllerresource refactor?)
     self.engine = {"input_shape":self.input_shape, "output_shape":self.output_shape}
     #TODO: hardcoded low/highs
@@ -46,19 +46,26 @@ class AegisEnv(gym.Env):
     self.start_server(port)
 
   def step(self, action):
+    starttime = time.time()
     #aegis expects discrete actions to be represented by one-hot (for now)
     if self.discrete:
       action = to_categorical(action, self.action_space.n)
     #set state for other nodes to pick up
     self.state = action
 
-    time.sleep(self.sleep) #TODO: move sleep? idk
     r = self.reward
     self.reward = 0
     obs = self.get_observation(r * self.reward_propagation);
 
     self.step_count += 1
     done = self.n_steps != None and (self.step_count >= self.n_steps)
+
+    #sleep time equal to update time * niceness
+    dt = time.time() - starttime
+    if self.niceness >= 0:
+      time.sleep(dt * self.niceness)
+    else:
+      time.sleep(-self.niceness)
 
     return obs, r, done, {}
 
