@@ -24,7 +24,8 @@ class KerasEngine(RequestEngine):
     input_states = [np.zeros(self.input_shape) if x is None else x for x in input_states]
     #cast
     input_states = [x.astype("float32") for x in input_states]
-    input_states = np.sum(input_states, 0)
+    input_states = np.sum(input_states, 0) #TODO: other methods for merging (or not merging at all)
+    input_states = np.expand_dims(input_states, 0) #add batch dimension
     output_states = self.model(input_states)
     #TODO: mean? maybe allow returning the batch?
     output_state = np.mean(output_states, axis=0)
