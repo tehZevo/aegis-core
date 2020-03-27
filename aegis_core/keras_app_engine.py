@@ -9,6 +9,7 @@ from tensorflow.keras.applications import VGG16, VGG19, ResNet50, InceptionV3, \
   DenseNet201, NASNetMobile, NASNetLarge
 import tensorflow.keras.applications as apps
 
+#TODO: move to separate repo
 #TODO: not sure if this is needed...
 #class, default input size, default output size, output depth, preprocessor
 apps = {
@@ -35,6 +36,7 @@ apps = {
 
 #TODO: remove pooling requirement
 #inputs should be rgb images 0-255 i believe
+#TODO: make subclass of KerasEngine maybe
 
 class KerasAppEngine(RequestEngine):
   def __init__(self, app_name="mobilenet_v2", pooling="max", input_urls=[],

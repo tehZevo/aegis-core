@@ -3,6 +3,7 @@ from tensorflow.keras.utils import to_categorical
 
 from .engine import RequestEngine, sanitize
 
+#TODO: make done_reward a kwarg
 class EnvEngine(RequestEngine):
   def __init__(self, env, done_reward, action_url, run_name="",
       reward_proxy=None, action_repeat=1, render=False, obs_scale=None,

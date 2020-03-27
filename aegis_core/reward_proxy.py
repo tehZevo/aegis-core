@@ -33,7 +33,7 @@ class RewardResource(Resource):
 
 import numbers
 
-#TODO: expose means/deviations for inspection via http or something
+#TODO: support tensorboard (means/deviations)
 #TODO: saving/loading of channels mean/deviation and other parameters?
 #TODO: live adjustment of decay rate, scale, clip?
 class RewardProxy(RequestEngine):

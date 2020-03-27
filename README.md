@@ -28,10 +28,16 @@ Currently, the protocol is implemented using a single HTTP POST request.
 ## TODO
 * support environments with discrete observation spaces
 
+* Add flask log anti-spam to flask controller
+
 * VAE engine
   * stores seen inputs and trains on them
 
 * multiple input/output channels per node (mostly for VAE and pretrained SL models)
+
+* throttle node
+  * scale data between 0 and 1x
+  * might be useful for slowly reducing the dependence on a particular node
 
 * monitoring / command API
   * connect to one node, it finds upstream connections?
@@ -42,7 +48,7 @@ Currently, the protocol is implemented using a single HTTP POST request.
   * connect/disconnect
   * learning rate, gamma/lambda, etc
 
-* add "channels" and rescaling to reward proxy
+* Add autoencoders with channels so the AE can be reused for (and trained on) multiple inputs
 
 * "PSET" engine
   * policy search with eligibility traces
