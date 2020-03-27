@@ -25,7 +25,7 @@ class DiscretizerEngine(RequestEngine):
     #cast
     input_states = [x.astype("float32") for x in input_states]
     input_states = np.sum(input_states, 0) #TODO: other methods for merging (or not merging at all)
-    output_states = tf.nn.softmax(input_states)
+    output_state = tf.nn.softmax(input_states)
 
     return output_state
 
