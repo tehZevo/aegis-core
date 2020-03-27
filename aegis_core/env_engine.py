@@ -8,6 +8,7 @@ class EnvEngine(RequestEngine):
   def __init__(self, env, done_reward, action_url, run_name="",
       reward_proxy=None, action_repeat=1, render=False, obs_scale=None,
       callbacks=[]):
+    """Note: for discrete environments, uses argmax for action selection"""
     super().__init__(input_urls=[action_url])
 
     self.env = env
