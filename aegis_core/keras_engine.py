@@ -26,6 +26,6 @@ class KerasEngine(RequestEngine):
     input_states = [x.astype("float32") for x in input_states]
     input_states = np.sum(input_states, 0) #TODO: other methods for merging (or not merging at all)
     input_states = np.expand_dims(input_states, 0) #add batch dimension
-    output_state = self.model(input_states)[0]
+    output_state = self.model(input_states)[0].numpy()
 
     return output_state
