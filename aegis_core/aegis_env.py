@@ -21,7 +21,8 @@ from .engine import RequestEngine
 #not a "controller", but needs `state` and `reward` variables
 class AegisEnv(gym.Env):
   def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False,
-      niceness=0.1, port=8181, n_steps=None, reward_propagation=0):
+      niceness=0.1, port=8181, n_steps=None, reward_propagation=0, cors=True):
+    self.cors = cors
     self.input_shape = obs_shape
     self.output_shape = action_shape
     self.niceness = niceness
@@ -83,6 +84,12 @@ class AegisEnv(gym.Env):
   #jacked from aegis -> flask_controller.py
   def start_server(self, port):
     flask_app = Flask(__name__)
+    flask_app.config['CORS_HEADERS'] = 'Content-Type'
+    #NOTE: have to apply cors after defining resources?
+    if self.cors:
+      print("Enabling CORS")
+      CORS(flask_app, resources={r"/*": {"origins": "*"}})
+
     api = Api(flask_app)
 
     api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
