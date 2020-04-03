@@ -35,6 +35,8 @@ Currently, the protocol is implemented using a single HTTP POST request.
 
 * multiple input/output channels per node (mostly for VAE and pretrained SL models)
 
+* enable CORS for non-standard flask engines (reward_proxy)
+
 * throttle node
   * scale data between 0 and 1x
   * might be useful for slowly reducing the dependence on a particular node
