@@ -6,6 +6,7 @@ import math
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
+from flask_cors import CORS
 
 from .controller import Controller
 
@@ -34,15 +35,18 @@ class ControllerResource(Resource):
     return data
 
 class FlaskController(Controller):
-  def __init__(self, engine, niceness=1, port=8181, autostart=True):
+  def __init__(self, engine, niceness=1, port=8181, autostart=True, cors=True):
     super().__init__(engine, niceness=niceness)
     self.start_server(port)
+    self.cors = cors
 
     if autostart:
       self.loop()
 
   def start_server(self, port):
     flask_app = Flask(__name__)
+    if self.cors:
+      CORS(flask_app)
     api = Api(flask_app)
 
     api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
