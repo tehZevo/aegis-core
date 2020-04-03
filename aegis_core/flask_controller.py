@@ -45,6 +45,7 @@ class FlaskController(Controller):
 
   def start_server(self, port):
     flask_app = Flask(__name__)
+    flask_app.config['CORS_HEADERS'] = 'Content-Type'
     api = Api(flask_app)
 
     api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
