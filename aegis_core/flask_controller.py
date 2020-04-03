@@ -47,11 +47,10 @@ class FlaskController(Controller):
     flask_app = Flask(__name__)
     api = Api(flask_app)
 
-    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
-
-    #NOTE: have to apply cors after defining resources?
     if self.cors:
-      CORS(flask_app)
+      CORS(flask_app, resources={r"/*": {"origins": "*"}})
+
+    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
 
     self.flask_app = flask_app
 
