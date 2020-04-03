@@ -46,13 +46,14 @@ class FlaskController(Controller):
   def start_server(self, port):
     flask_app = Flask(__name__)
     flask_app.config['CORS_HEADERS'] = 'Content-Type'
+    #NOTE: have to apply cors after defining resources?
+    if self.cors:
+      print("Enabling CORS")
+      CORS(flask_app, resources={r"/*": {"origins": "*"}})
+
     api = Api(flask_app)
 
     api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
-
-    #NOTE: have to apply cors after defining resources?
-    if self.cors:
-      CORS(flask_app, resources={r"/*": {"origins": "*"}})
 
     self.flask_app = flask_app
 
