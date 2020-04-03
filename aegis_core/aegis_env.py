@@ -6,6 +6,7 @@ from gym import spaces
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
+from flask_cors import CORS
 from tensorflow.keras.utils import to_categorical
 
 from .flask_controller import ControllerResource
