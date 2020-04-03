@@ -37,8 +37,8 @@ class ControllerResource(Resource):
 class FlaskController(Controller):
   def __init__(self, engine, niceness=1, port=8181, autostart=True, cors=True):
     super().__init__(engine, niceness=niceness)
-    self.start_server(port)
     self.cors = cors
+    self.start_server(port)
 
     if autostart:
       self.loop()
@@ -47,11 +47,10 @@ class FlaskController(Controller):
     flask_app = Flask(__name__)
     api = Api(flask_app)
 
-    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
-
-    #NOTE: have to apply cors after defining resources?
     if self.cors:
       CORS(flask_app)
+
+    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
 
     self.flask_app = flask_app
 
