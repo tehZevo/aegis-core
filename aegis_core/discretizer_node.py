@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from aegis_node import AegisNode
+from .aegis_node import AegisNode
 
 #TODO: move to separate repo maybe
 #TODO: support multibinary/multidiscrete

@@ -1,6 +1,6 @@
 import numpy as np
 
-from aegis_node import AegisNode
+from .aegis_node import AegisNode
 
 #TODO: move to aegis_nodes package
 class GaussianLerp(AegisNode):

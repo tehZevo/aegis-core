@@ -2,7 +2,7 @@ import numpy as np
 from tensorflow.keras.utils import to_categorical
 import warnings
 
-from aegis_node import AegisNode
+from .aegis_node import AegisNode
 
 #TODO: make done_reward a kwarg
 #TODO: better yet, implement done_reward as a gym wrapper instead
