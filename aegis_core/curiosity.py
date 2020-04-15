@@ -4,8 +4,7 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from ml_utils.viz import viz_weights
-from .engine import RequestEngine, Engine, request_input, sanitize
+from .aegis_node import AegisNode
 
 class CuriosityEngine(Engine):
   """

@@ -1,34 +1,21 @@
-import threading
 import time
 
 import gym
 from gym import spaces
 import numpy as np
-from flask import Flask, request, jsonify
-from flask_restful import Resource, Api
-from flask_cors import CORS
 from tensorflow.keras.utils import to_categorical
 
-from .flask_controller import ControllerResource
-from .engine import RequestEngine
+from .aegis_node import AegisNode
 
-#WIP
-
-#agent.train calls env reset/step
-#so env has to set up flask server (controller?)
-#env gets reward from requests to its flask server
-#env gets action from agent, state comes from request or whatever..
-
-#not a "controller", but needs `state` and `reward` variables
+#wraps an AegisNode
+#TODO: make extend AegisNode
 class AegisEnv(gym.Env):
-  def __init__(self, obs_shape, action_shape, input_urls=[], discrete=False,
-      niceness=0.1, port=8181, n_steps=None, reward_propagation=0, cors=True):
-    self.cors = cors
+  def __init__(self, node, obs_shape, action_shape, discrete=False,
+      n_steps=None, reward_propagation=0):
     self.input_shape = obs_shape
     self.output_shape = action_shape
-    self.niceness = niceness
-    #TODO: remove dummy (requires controllerresource refactor?)
-    self.engine = {"input_shape":self.input_shape, "output_shape":self.output_shape}
+    self.node = node
+
     #TODO: hardcoded low/highs
     self.observation_space = spaces.Box(shape=[obs_shape], low=-np.Inf, high=np.Inf)
     self.action_space = spaces.Discrete(action_shape) if discrete else spaces.Box(shape=[action_shape], low=-np.Inf, high=np.Inf)
@@ -36,70 +23,45 @@ class AegisEnv(gym.Env):
     self.n_steps = n_steps
     self.step_count = 0
     self.reward_propagation = reward_propagation
-    #despite it being named "state", this is actually the output (ie action)
-    #of the agent, to be passed to whichever agents request it down the line
-    #do NOT return this from reset/step
-    self.state = np.zeros(action_shape) #TODO: set to none to start?
-    #reward for the next step
-    self.reward = 0
 
-    self.request_engine = RequestEngine(input_urls)
-    self.request_engine.input_shape = self.input_shape #TODO: sigh, more patchwork
-    self.start_server(port)
+    self.last_time = time.time()
 
   def step(self, action):
-    starttime = time.time()
+    #calculate niceness time as the time outside of step (RL agent decision time)
+    dt = time.time() - self.last_time
+
     #aegis expects discrete actions to be represented by one-hot (for now)
     if self.discrete:
       action = to_categorical(action, self.action_space.n)
     #set state for other nodes to pick up
-    self.state = action
+    self.node.set_state(action)
 
-    r = self.reward
-    self.reward = 0
-    obs = self.get_observation(r * self.reward_propagation);
+    #get inputs, send rewards, flip received reward buffer
+    #see AegisNode.internal_update()
+    self.node.pre_update()
+    #TODO: callback stuff goes here
+    self.node.post_update()
+
+    r = self.node.get_reward()
+    self.node.give_reward(r * self.reward_propagation)
+
+    #grab observation
+    obs = self.node.get_input()
 
     self.step_count += 1
     done = self.n_steps != None and (self.step_count >= self.n_steps)
 
     #sleep time equal to update time * niceness
-    dt = time.time() - starttime
     if self.niceness >= 0:
       time.sleep(dt * self.niceness)
     else:
       time.sleep(-self.niceness)
 
-    return obs, r, done, {}
+    self.last_time = time.time()
 
-  def get_observation(self, reward):
-    #TODO: reward propagation scheme?
-    inputs = self.request_engine.get_inputs(reward)
-    inputs = [np.zeros(self.input_shape) if x is None else x for x in inputs]
-    #TODO: other merge methods?
-    return np.mean(inputs, axis=0)
+    return obs, r, done, {}
 
   def reset(self):
     self.step_count = 0
-    return self.get_observation(0)
-
-  #jacked from aegis -> flask_controller.py
-  def start_server(self, port):
-    flask_app = Flask(__name__)
-    flask_app.config['CORS_HEADERS'] = 'Content-Type'
-    #NOTE: have to apply cors after defining resources?
-    if self.cors:
-      print("Enabling CORS")
-      CORS(flask_app, resources={r"/*": {"origins": "*"}})
-
-    api = Api(flask_app)
-
-    api.add_resource(ControllerResource, "/", resource_class_kwargs={"controller": self})
-
-    self.flask_app = flask_app
-
-    def dedotated_wam():
-      self.flask_app.run(debug=False, threaded=True, port=port)
-
-    self.app_thread = threading.Thread(target=dedotated_wam)
-    self.app_thread.daemon = True
-    self.app_thread.start()
+    self.last_time = time.time()
+    return self.node.get_input()
