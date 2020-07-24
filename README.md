@@ -26,6 +26,12 @@ Currently, the protocol is implemented using a single HTTP POST request.
 * Accepts rewards which are then sent to multiple nodes at the same time
 
 ## TODO
+* Use python-fire to reduce clutter in run scripts
+
+* Reduce dependency on `start_nodes` in run scripts
+
+* Perhaps clean up run scripts/functions with `inspect.getargspec`
+
 * support environments with discrete observation spaces
 
 * Add flask log anti-spam to flask controller

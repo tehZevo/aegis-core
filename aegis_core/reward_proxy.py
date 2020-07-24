@@ -16,9 +16,10 @@ import numbers
 #TODO: saving/loading of channels mean/deviation and other parameters?
 #TODO: live adjustment of decay rate, scale, clip?
 class RewardProxy(AegisNode):
-  def __init__(self, port node_urls=[], channels=None, decay_rates=1e-3, clips=3, scales=1, niceness=1, cors=True):
-    super().__init__(port, inputs=node_urls, outputs=channels, niceness=niceness, cors=cors)
-    self.channels = self.outputs #sanity alias
+  def __init__(self, port, channels, decay_rates=1e-3, clips=3, scales=1):
+    """Channels should be a dict of channel_name:reward_url"""
+    super().__init__(port, inputs=channels)
+    self.channels = self.inputs.keys() #sanity alias
     self.rewards = {k: 0 for k in self.channels}
     self.means = {k: 0 for k in self.channels}
     self.deviations = {k: 1 for k in self.channels}
@@ -28,18 +29,19 @@ class RewardProxy(AegisNode):
     self.epsilon = 1e-7
 
     #allow decay_rates clips, and scales to be single numbers or lists TODO: check len(decay_rates)==len(self.channels)
-    self.decay_rates = {k: decay_rates for k in self.channels} if isinstance(decay_rates, numbers.Number) else dict(zip(self.channels, decay_rates))
-    self.clips = {k: clips for k in self.channels} if isinstance(clips, numbers.Number) else dict(zip(self.channels, clips))
-    self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else dict(zip(self.channels, scales))
+    #TODO: check that all keys are present in decay_rates/clips/scales (as in channels)
+    self.decay_rates = {k: decay_rates for k in self.channels} if isinstance(decay_rates, numbers.Number) else decay_rates
+    self.clips = {k: clips for k in self.channels} if isinstance(clips, numbers.Number) else clips
+    self.scales = {k: scales for k in self.channels} if isinstance(scales, numbers.Number) else scales
 
-    #convert half life to decay rate
+    #convert half life to decay rate (values > 1)
     self.decay_rates = {k: ln(2) / x if x > 1 else x for k, x in self.decay_rates.items()}
 
   def update(self):
     sum_reward = 0
     #for each reward
     for channel in self.channels:
-      r = self.get_reward(channel)
+      r = self.get_input(channel, ()) #default to 0 if error
       mean = self.means[channel]
       deviation = self.deviations[channel]
       decay_rate = self.decay_rates[channel]
@@ -57,6 +59,13 @@ class RewardProxy(AegisNode):
 
       sum_reward += normalized_reward
 
-    #distribute rewards
-    for channel in self.inputs.keys():
-      self.give_reward(sum_reward, channel)
+    #set reward value
+    self.set_output(sum_reward)
+
+if __name__ == "__main__":
+  import logging
+
+  log = logging.getLogger('werkzeug')
+  log.setLevel(logging.ERROR)
+
+  RewardProxy(12400, []).start()

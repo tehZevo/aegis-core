@@ -6,15 +6,28 @@ import math
 import requests
 import re
 
+import asyncio
+
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
+import logging
+
+#TODO: make these static on class
 DEFAULT_INPUT = "_default"
 DEFAULT_OUTPUT = "" #for http route "/"
 
-#TODO: automatically generate routes when set_state is called?
-#TODO: separate rewards per url?
+DEFAULT_NICENESS = 1.
+DEFAULT_DELAY = 1./100
+
+#TODO: automatically generate routes when set_output is called?
+
+#TODO: accidentally reintroduced issue where recursive nodes will take more and more time..
+# because the niceness time includes time taken to fetch inputs
+# need to pre-fetch inputs...?
+
+#for now, all inputs will be singlular
 
 def sanitize(url):
   if re.match(r"^\d+(/.*)?$", url):
@@ -31,22 +44,9 @@ class AegisResource(Resource):
   def __init__(self, node, output):
     self.node = node
     self.output = output
-    #TODO: use output (store rewards correctly)
     self.cb_data = {}
 
-  def post(self):
-    reward = request.get_json(force=True)
-    if reward is None:
-      #TODO: treat null/none/empty reward as 0?
-      raise ValueError("Reward was none!")
-      os._exit(1)
-    if math.isnan(reward):
-      raise ValueError("Reward was nan!")
-      os._exit(1)
-
-    #store reward in respective channel
-    self.node.received_reward_buffer[self.output] += reward
-
+  def get(self):
     #no hand holding here, only numpy arrays/scalars and None are allowed
     #receiving end is responsible for converting to a useful format and handling Nones/nulls
     data = self.node.output_states[self.output]
@@ -58,34 +58,38 @@ class AegisResource(Resource):
 
 #TODO: some kind of single parameter config (niceness, cors, callbacks?)
 class AegisNode():
-  def __init__(self, port, inputs=None, outputs=None, niceness=1, cors=True, callbacks=None):
+  def __init__(self, port, inputs=None, outputs=None):
+    #TODO: add option for port-less node (no outputs)
     self.port = port
-    self.niceness = niceness
-    self.cors = cors
-    self.callbacks = [] if callbacks is None else callbacks
+    self.niceness = DEFAULT_NICENESS
+    #delay helps to prevent really light nodes from sucking cpu
+    self.delay = DEFAULT_DELAY #TODO rename idk
+    self.cors = True #TODO: remove param
+
+    #time spent waiting on inputs
+    self.input_time = 0
+
+    #TODO: disables logging, might need a more graceful approach
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
 
     if inputs is None:
-      inputs = {} #:^)
+      inputs = {}
     if isinstance(inputs, str):
-      inputs = [inputs]
-    if isinstance(inputs, list):
       inputs = {DEFAULT_INPUT: inputs}
-    if isinstance(inputs, dict):
-      inputs = {k: v if isinstance(v, list) else [v] for k, v in inputs.items()}
     if not isinstance(inputs, dict):
-      raise "inputs should be a list, dict, or str"
+      raise "inputs should be a dict, or str, or None"
 
-    inputs = {k: [sanitize(x) for x in v] for k, v in inputs.items()}
+    inputs = {k: sanitize(v) for k, v in inputs.items()}
+
     self.inputs = inputs
-    self.send_rewards = {k: 0 for k, v in self.inputs.items()}
 
+    #TODO: don't create an output if no output..?
     if outputs is None:
       outputs = [DEFAULT_OUTPUT]
     if not isinstance(outputs, list):
-      raise "outputs should be a list, or None"
+      raise "outputs should be a list, or None" #TODO: or str?
     self.outputs = outputs
-    self.received_rewards = {k: 0 for k in self.outputs}
-    self.received_reward_buffer = {k: 0 for k in self.outputs}
     self.output_states = {k: None for k in self.outputs}
 
     #setup server
@@ -93,20 +97,28 @@ class AegisNode():
     self.setup_routes()
     self.start_flask_server()
 
+  def set_niceness(self, niceness):
+    self.niceness = niceness
+    return self
+
+  def set_delay(self, delay):
+    self.delay = delay
+    return self
+
   def create_flask_server(self):
     flask_app = Flask(__name__)
     flask_app.config['CORS_HEADERS'] = 'Content-Type'
     #NOTE: have to apply cors after defining resources?
-    if self.cors:
-      print("Enabling CORS")
-      CORS(flask_app, resources={r"/*": {"origins": "*"}})
+    #use cors on aegis nodes, aint nobody got time for localhost errors
+    CORS(flask_app, resources={r"/*": {"origins": "*"}})
 
     self.api = Api(flask_app)
     self.flask_app = flask_app
 
   def setup_routes(self):
     for output in self.outputs:
-      self.api.add_resource(AegisResource, "/{}".format(output), resource_class_kwargs={"node": self, "output": output})
+      print("/{}".format(output))
+      self.api.add_resource(AegisResource, "/{}".format(output), endpoint=output, resource_class_kwargs={"node": self, "output": output})
 
   def start_flask_server(self):
     def dedotated_wam():
@@ -116,93 +128,66 @@ class AegisNode():
     self.app_thread.daemon = True
     self.app_thread.start()
 
-  def clear_send_rewards(self):
-    self.send_rewards = {k: 0 for k, v in self.inputs.items()}
+  def has_input(self, channel):
+    return channel in self.inputs
 
-  def flip_received_rewards(self):
-    self.received_rewards = self.received_reward_buffer.copy()
-    self.received_reward_buffer = {k: 0 for k in self.outputs}
+  def has_output(self, channel):
+    return channel in self.outputs
 
-  def pre_update(self):
-    self.fetch_inputs()
-    self.flip_received_rewards()
+  def get_input(self, channel=None, shape=None):
+    """Returns input from the given channel
+    if shape is provided, will return np.zeros(shape) if failed/none
+    """
+    input_start_time = time.time()
+    channel = DEFAULT_INPUT if channel is None else channel
+    if not self.has_input(channel):
+      raise Exception("Channel '{}' not present in inputs".format(channel))
 
-  def post_update(self):
-    for cb in self.callbacks:
-      cb(self.cb_data)
+    data = None
+    try:
+      data = requests.get(self.inputs[channel])
+      data.raise_for_status()
+      data = data.json()
+      if data is not None:
+        data = np.array(data)
+    except:
+      print("Error when getting input '{}'".format(channel))
 
-  def set_callback_data(self, cb_data):
-    self.cb_data = cb_data
+    if data is None and shape is not None:
+      data = np.zeros(shape)
 
-  def fetch_inputs(self):
-    #TODO: multithread maybe?
-    self.input_states = {k: [None for _ in v] for k, v in self.inputs.items()}
-    for input_name, urls in self.inputs.items():
-      reward = self.send_rewards[input_name]
-      self.input_states[input_name] = []
-      for url in urls:
-        try:
-          data = requests.post(url, json=reward)
-          data.raise_for_status()
-          data = data.json()
-          #TODO: none check here?
-          #TODO: multithreading should use indexes instead of .append
-          self.input_states[input_name].append(np.array(data))
-        except Exception as e:
-          print(e)
-          print("Error in get input '{}', returning none".format(input_name))
-    self.clear_send_rewards()
+    #add time spent waiting on input
+    self.input_time += time.time() - input_start_time
 
-  def start(self):
+    return data
+
+  async def start(self):
     while True:
-      self.internal_update()
+      #call update
+      t = time.time()
+      self.update()
+      dt = time.time() - t
 
-  def internal_update(self):
-    #TODO: clear output states?
-    #get inputs, send rewards, flip received reward buffer
-    self.pre_update()
+      #print(type(self).__name__, dt) #print update time
 
-    #call update
-    t = time.time()
-    self.update()
-    dt = time.time() - t
+      #subtract time spent waiting on inputs, so delay doesnt increase forever
+      #TODO: might have to reduce niceness to like 0.9 too?
+      dt -= self.input_time
+      self.input_time = 0
 
-    self.post_update()
-
-    #sleep according to niceness
-    if self.niceness >= 0:
-      time.sleep(dt * self.niceness)
-    else:
-      time.sleep(-self.niceness)
+      #sleep according to niceness and delay
+      #time.sleep(dt * self.niceness)
+      await asyncio.sleep(dt * self.niceness)
+      #time.sleep(self.delay)
+      await asyncio.sleep(self.delay)
 
   def update(self):
     #override me
     pass
 
-  def set_state(self, state, channel=None):
+  def set_output(self, state, channel=None):
     """Sets the output state of the given channel"""
     channel = DEFAULT_OUTPUT if channel is None else channel
-    if channel not in self.outputs:
+    if not self.has_output(channel):
       raise Exception("Channel '{}' not present in outputs".format(channel))
     self.output_states[channel] = state
-
-  def get_input(self, channel=None):
-    """Returns the input at the given channel"""
-    channel = DEFAULT_INPUT if channel is None else channel
-    if channel not in self.inputs:
-      raise Exception("Channel '{}' not present in inputs".format(channel))
-    return self.input_states[channel]
-
-  def give_reward(self, reward, channel=None):
-    """Adds reward to the given input channel, which will be sent next step"""
-    channel = DEFAULT_INPUT if channel is None else channel
-    if channel not in self.inputs:
-      raise Exception("Channel '{}' not present in inputs".format(channel))
-    self.send_rewards[channel] += reward
-
-  def get_reward(self, channel=None):
-    """Returns the cumulative reward in the given output channel since the last step"""
-    channel = DEFAULT_OUTPUT if channel is None else channel
-    if channel not in self.outputs:
-      raise Exception("Channel '{}' not present in outputs".format(channel))
-    return self.received_rewards[channel]

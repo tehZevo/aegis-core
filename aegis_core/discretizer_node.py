@@ -10,7 +10,7 @@ from .aegis_node import AegisNode
 #kinda just an activation node for now lol
 class DiscretizerNode(AegisNode):
   """Discretizes input"""
-  def __init__(self, inputs=[], niceness=1, cors=True):
+  def __init__(self, inputs=[]):
     super().__init__(inputs=inputs, niceness=niceness, cors=cors)
 
   def update(self):

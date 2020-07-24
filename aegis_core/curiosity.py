@@ -4,16 +4,23 @@ import random
 import numpy as np
 import tensorflow as tf
 
+#TODO: convert to using aegisnode
 from .aegis_node import AegisNode
 
-class CuriosityEngine(Engine):
+class CuriosityEngine(AegisNode):
   """
   Takes pred/true input nodes, calculates loss, sends loss as reward to
   action node (or proxy), sends -loss as reward to pred node (or proxy)
   """
-  def __init__(self, true_url, pred_url, action_url, pred_proxy=None,
-      loss=tf.keras.losses.mean_squared_error):
-    super().__init__()
+  def __init__(self, port, true_url, pred_url, action_url, pred_proxy=None,
+      loss=tf.keras.losses.mean_squared_error, callbacks=None):
+    inputs = {
+      "true": true_url,
+      "pred": pred_url,
+      "action": action_url,
+      "reward": pred_proxy if pred_proxy is not None else pred_url
+    }
+    super().__init__(port, inputs=inputs, callbacks=callbacks)
     self.true_url = sanitize(true_url)
     self.pred_url = sanitize(pred_url)
     self.action_url = sanitize(action_url)
